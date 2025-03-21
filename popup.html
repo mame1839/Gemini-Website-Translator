@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 250px;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+    }
+    .header {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .info {
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+    .progress-container {
+      margin: 15px 0;
+      display: none;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background-color: #4285f4;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .progress-text {
+      font-size: 12px;
+      margin-top: 5px;
+      text-align: center;
+    }
+    .stats-text {
+      font-size: 12px;
+      margin-top: 5px;
+      color: #666;
+    }
+    button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Gemini Translator</div>
+  
+  <div class="info">Click the "Translate" button to translate the page.</div>
+  
+  <div class="progress-container" id="progressContainer">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-text" id="progressText">Translating... 0%</div>
+    <div class="stats-text" id="statsText"></div>
+  </div>
+  
+  <button id="translateBtn">Translate</button>
+  <button id="excludeBtn">Don't translate this site</button>
+  <button id="optionsBtn">Open Settings</button>
+  
+  <div class="status" id="statusText"></div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

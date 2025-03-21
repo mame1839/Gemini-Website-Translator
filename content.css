@@ -1,0 +1,95 @@
+.gemini-translator-prompt {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: white !important;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 2147483647;
+  font-family: Arial, sans-serif;
+  max-width: 250px;
+  text-align: center;
+  opacity: 1 !important;
+}
+
+.prompt-text {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.prompt-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.prompt-buttons button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  flex-grow: 0.45;
+}
+
+#translate-yes {
+  background-color: #4285f4;
+  color: white;
+}
+
+#translate-yes:hover {
+  background-color: #3367d6;
+}
+
+#translate-no {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+#translate-no:hover {
+  background-color: #e0e0e0;
+}
+
+.translation-status {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 2147483647;
+  font-family: Arial, sans-serif;
+  min-width: 250px;
+  max-width: 300px;
+  font-size: 14px;
+}
+
+.translation-status .progress-bar {
+  width: 100%;
+  height: 10px;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.translation-status .progress-fill {
+  height: 100%;
+  background-color: #4285f4;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+.translation-status .stats {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.translated-text {
+  background-color: rgba(66, 133, 244, 0.05);
+  transition: background-color 0.3s;
+}
