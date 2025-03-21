@@ -1,10 +1,8 @@
 # Translate Extension
-# Translate Extension
 
 この Chrome 拡張機能は、ウェブページの翻訳を Gemini の API を利用して行うツールです。
 This Chrome extension is a tool that translates web pages using Gemini's API.
 
-## 特徴
 ## Features
 
 - ページ内のテキストを置換する形で翻訳
@@ -14,7 +12,6 @@ This Chrome extension is a tool that translates web pages using Gemini's API.
 - 翻訳の進捗表示やエラー処理
   - Displays translation progress and handles errors.
 
-## インストール方法
 ## Installation Instructions
 
 1. このリポジトリをクローンするか、ZIP でダウンロードしてください。
@@ -28,7 +25,6 @@ This extension can also be installed directly from the Chrome Web Store using th
 [Chrome ウェブストアからインストールする](https://chromewebstore.google.com/detail/dchjlinbddpaiddipiflefedphldelki?utm_source=item-share-cb)
 [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/dchjlinbddpaiddipiflefedphldelki?utm_source=item-share-cb)
 
-## 使用方法
 ## How to Use
 
 - 拡張機能のアイコンをクリックして翻訳開始をクリックするか、ポップアップから翻訳を開始してください。
@@ -36,7 +32,6 @@ This extension can also be installed directly from the Chrome Web Store using th
 - オプション画面で API キーやその他の設定を行えます。
   - You can set the API key and other options from the options page.
 
-## ライセンス
 ## License
 
 このプロジェクトは MIT ライセンスの下で公開されています。詳細は [LICENSE](LICENSE) ファイルをご参照ください。
