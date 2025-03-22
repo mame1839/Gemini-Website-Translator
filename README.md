@@ -9,8 +9,6 @@ This Chrome extension is a tool that translates web pages using Gemini's API.
   - Translates text by replacing the content within the page.
 - 多言語対応（英語、日本語、フランス語、など）
   - Supports multiple languages (e.g., English, Japanese, French, etc.).
-- 翻訳の進捗表示やエラー処理
-  - Displays translation progress and handles errors.
 
 ## Installation Instructions
 
