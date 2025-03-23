@@ -1,7 +1,7 @@
 # Translate Extension
 
 - この Chrome 拡張機能は、ウェブページの翻訳を LLM の API を利用して行うツールです。
-- This Chrome extension is a tool that translates web pages using LLM's API.
+  - This Chrome extension is a tool that translates web pages using LLM's API.
 
 ## Features
 
