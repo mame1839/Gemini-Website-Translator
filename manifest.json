@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Gemini Website Translator",
-  "version": "1.2",
-  "description": "A Chrome extension that uses Gemini's API to translate websites.",
+  "name": "LLM Website Translator",
+  "version": "2.0",
+  "description": "A Chrome extension that uses LLM's API to translate websites.",
   "permissions": [ "storage", "activeTab", "contextMenus" ],
   "host_permissions": [ "<all_urls>" ],
   "background": {

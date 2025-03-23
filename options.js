@@ -1,47 +1,55 @@
 document.addEventListener('DOMContentLoaded', function() {
-  chrome.storage.local.get(['targetLanguage'], function(items) {
+  chrome.storage.local.get([
+    'targetLanguage', 'apiProvider', 'geminiApiKey', 'openaiApiKey', 'deepseekApiKey',
+    'geminiModel', 'openaiModel', 'deepseekModel',
+    'batchSize', 'maxBatchLength', 'delayBetweenRequests', 'toggleBlueBackground',
+    'realTimeTranslation', 'showProgressPopup', 'excludeList'
+  ], function(items) {
     let lang = items.targetLanguage || 'en';
     updateUITranslations(lang);
+
+    document.getElementById('apiProvider').value = items.apiProvider || 'gemini';
+    document.getElementById('geminiApiKey').value = items.geminiApiKey || '';
+    document.getElementById('openaiApiKey').value = items.openaiApiKey || '';
+    document.getElementById('deepseekApiKey').value = items.deepseekApiKey || '';
+    document.getElementById('targetLanguage').value = items.targetLanguage || 'en';
+    document.getElementById('batchSize').value = (typeof items.batchSize === 'undefined' || items.batchSize == 20) ? 80 : items.batchSize;
+    document.getElementById('maxBatchLength').value = (typeof items.maxBatchLength === 'undefined' || items.maxBatchLength == 4000) ? 5000 : items.maxBatchLength;
+    document.getElementById('delayBetweenRequests').value = (typeof items.delayBetweenRequests === 'undefined' || items.delayBetweenRequests == 1000) ? 2500 : items.delayBetweenRequests;
+    document.getElementById('toggleBlueBackground').checked = items.toggleBlueBackground === true;
+    document.getElementById('realTimeTranslation').checked = items.realTimeTranslation === true;
+    document.getElementById('showProgressPopup').checked = (typeof items.showProgressPopup === 'undefined') ? true : items.showProgressPopup === true;
+    document.getElementById('excludeList').value = (items.excludeList && Array.isArray(items.excludeList)) ? items.excludeList.join('\n') : '';
+
+    const provider = items.apiProvider || 'gemini';
+    const modelKey = provider + 'Model';
+    document.getElementById('aiModel').value = items[modelKey] || '';
+
+    updateApiFields(provider, lang);
   });
 
-  chrome.storage.local.get(
-    [
-      'geminiApiKey',
-      'aiModel',
-      'targetLanguage',
-      'batchSize',
-      'maxBatchLength',
-      'delayBetweenRequests',
-      'toggleBlueBackground',
-      'realTimeTranslation',
-      'excludeList',
-      'showProgressPopup'
-    ],
-    function(items) {
-      document.getElementById('apiKey').value = items.geminiApiKey || "";
-      document.getElementById('aiModel').value = items.aiModel || "";
-      document.getElementById('targetLanguage').value = items.targetLanguage || 'en';
-      document.getElementById('batchSize').value = (typeof items.batchSize === 'undefined' || items.batchSize == 20) ? 80 : items.batchSize;
-      document.getElementById('maxBatchLength').value = (typeof items.maxBatchLength === 'undefined' || items.maxBatchLength == 4000) ? 5000 : items.maxBatchLength;
-      document.getElementById('delayBetweenRequests').value = (typeof items.delayBetweenRequests === 'undefined' || items.delayBetweenRequests == 1000) ? 2500 : items.delayBetweenRequests;
-      
-      document.getElementById('toggleBlueBackground').checked = items.toggleBlueBackground === true;
-      document.getElementById('realTimeTranslation').checked = items.realTimeTranslation === true;
-      
-      if (typeof items.showProgressPopup === 'undefined') {
-        document.getElementById('showProgressPopup').checked = true;
-      } else {
-        document.getElementById('showProgressPopup').checked = items.showProgressPopup === true;
-      }
+  document.getElementById('apiProvider').addEventListener('change', function() {
+    const provider = this.value;
+    const lang = document.getElementById('targetLanguage').value || 'en';
+    updateApiFields(provider, lang);
+    // AIモデルの値を更新
+    chrome.storage.local.get([provider + 'Model'], function(items) {
+      document.getElementById('aiModel').value = items[provider + 'Model'] || '';
+    });
+  });
 
-      if (items.excludeList && Array.isArray(items.excludeList)) {
-        document.getElementById('excludeList').value = items.excludeList.join('\n');
-      }
-    }
-  );
+  document.getElementById('targetLanguage').addEventListener('change', function() {
+    const lang = this.value;
+    updateUITranslations(lang);
+    const provider = document.getElementById('apiProvider').value;
+    updateApiFields(provider, lang);
+  });
 
   document.getElementById('saveBtn').addEventListener('click', function() {
-    const apiKey = document.getElementById('apiKey').value.trim();
+    const apiProvider = document.getElementById('apiProvider').value;
+    const geminiApiKey = document.getElementById('geminiApiKey').value.trim();
+    const openaiApiKey = document.getElementById('openaiApiKey').value.trim();
+    const deepseekApiKey = document.getElementById('deepseekApiKey').value.trim();
     const aiModel = document.getElementById('aiModel').value.trim();
     const targetLanguage = document.getElementById('targetLanguage').value;
     const batchSize = parseInt(document.getElementById('batchSize').value, 10) || 80;
@@ -50,51 +58,147 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleBlueBackground = document.getElementById('toggleBlueBackground').checked;
     const realTimeTranslation = document.getElementById('realTimeTranslation').checked;
     const showProgressPopup = document.getElementById('showProgressPopup').checked;
-    
-    let excludeList = document.getElementById('excludeList').value
-      .split(/\r?\n/)
-      .map(url => url.trim())
-      .filter(url => url);
+    const excludeList = document.getElementById('excludeList').value.split(/\r?\n/).map(url => url.trim()).filter(url => url);
 
     const lang = targetLanguage || 'en';
     const translations = optionsTranslations[lang] || optionsTranslations.en;
 
-    if (!apiKey) {
-      showStatus(translations.noApiKey, 'error');
-      return;
-    }
+    // APIプロバイダーごとにAIモデルを保存
+    const modelKey = apiProvider + 'Model';
+    const saveData = {
+      apiProvider: apiProvider,
+      geminiApiKey: geminiApiKey,
+      openaiApiKey: openaiApiKey,
+      deepseekApiKey: deepseekApiKey,
+      [modelKey]: aiModel,
+      targetLanguage: targetLanguage,
+      batchSize: batchSize,
+      maxBatchLength: maxBatchLength,
+      delayBetweenRequests: delayBetweenRequests,
+      toggleBlueBackground: toggleBlueBackground,
+      realTimeTranslation: realTimeTranslation,
+      showProgressPopup: showProgressPopup,
+      excludeList: excludeList
+    };
 
-    chrome.storage.local.set(
-      { 
-        geminiApiKey: apiKey, 
-        aiModel: aiModel,
-        targetLanguage: targetLanguage,
-        batchSize: batchSize,
-        maxBatchLength: maxBatchLength,
-        delayBetweenRequests: delayBetweenRequests,
-        toggleBlueBackground: toggleBlueBackground,
-        realTimeTranslation: realTimeTranslation,
-        showProgressPopup: showProgressPopup,
-        excludeList: excludeList
-      },
-      function() {
-        showStatus(translations.savedSettings, 'success');
-        updateUITranslations(targetLanguage);
-      }
-    );
+    chrome.storage.local.set(saveData, function() {
+      showStatus(translations.savedSettings, 'success');
+      updateUITranslations(targetLanguage);
+    });
   });
 });
 
+function updateApiFields(provider, lang) {
+  const tr = optionsTranslations[lang] || optionsTranslations.en;
+  const apiKeyHelp = {
+    gemini: tr.apiKeyHelpGemini || 'Get your API key from <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
+    openai: tr.apiKeyHelpOpenAI || 'Get your API key from <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
+    deepseek: tr.apiKeyHelpDeepSeek || 'Get your API key from <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.'
+  };
+  const aiModelHelp = {
+    gemini: tr.aiModelHelpGemini || 'If left blank, gemini-2.0-flash-lite will be used.',
+    openai: tr.aiModelHelpOpenAI || 'If left blank, gpt-4o-mini will be used.',
+    deepseek: tr.aiModelHelpDeepSeek || 'If left blank, deepseek-chat will be used.'
+  };
+  const aiModelPlaceholder = {
+    gemini: tr.aiModelPlaceholderGemini || 'e.g., gemini-2.0-flash-lite',
+    openai: tr.aiModelPlaceholderOpenAI || 'e.g., gpt-4o-mini',
+    deepseek: tr.aiModelPlaceholderDeepSeek || 'e.g., deepseek-chat'
+  };
+
+  document.getElementById('apiKeyHelp').innerHTML = apiKeyHelp[provider];
+  document.getElementById('aiModelHelp').textContent = aiModelHelp[provider];
+  document.getElementById('aiModel').placeholder = aiModelPlaceholder[provider];
+
+  // APIキー入力欄の表示切り替え
+  document.getElementById('geminiApiKey').style.display = provider === 'gemini' ? 'block' : 'none';
+  document.getElementById('openaiApiKey').style.display = provider === 'openai' ? 'block' : 'none';
+  document.getElementById('deepseekApiKey').style.display = provider === 'deepseek' ? 'block' : 'none';
+}
+
+function updateUITranslations(lang) {
+  const tr = optionsTranslations[lang] || optionsTranslations.en;
+  document.getElementById('pageTitle').textContent = tr.pageTitle || 'LLM Website Translator Settings';
+  document.getElementById('header').textContent = tr.header || 'LLM Website Translator Settings';
+
+  document.getElementById('apiProviderLabel').textContent = tr.apiProviderLabel || 'API Provider:';
+  document.getElementById('apiProviderHelp').textContent = tr.apiProviderHelp || 'Choose the API provider to use for translation.';
+
+  document.getElementById('apiKeyLabel').textContent = tr.apiKeyLabel || 'API Key:';
+  document.getElementById('geminiApiKey').placeholder = tr.apiKeyPlaceholderGemini || 'Enter your Gemini API key';
+  document.getElementById('openaiApiKey').placeholder = tr.apiKeyPlaceholderOpenAI || 'Enter your OpenAI API key';
+  document.getElementById('deepseekApiKey').placeholder = tr.apiKeyPlaceholderDeepSeek || 'Enter your DeepSeek API key';
+
+  document.getElementById('aiModelLabel').textContent = tr.aiModelLabel || 'AI Model:';
+
+
+  document.getElementById('batchSizeLabel').textContent = tr.batchSizeLabel || 'Batch Size (Number of Texts):';
+  document.getElementById('batchSizeHelp').textContent = tr.batchSizeHelp || '';
+
+  document.getElementById('maxBatchLengthLabel').textContent = tr.maxBatchLengthLabel || 'Max Batch Length (Characters):';
+  document.getElementById('maxBatchLengthHelp').textContent = tr.maxBatchLengthHelp || '';
+
+  document.getElementById('delayBetweenRequestsLabel').textContent = tr.delayBetweenRequestsLabel || 'Delay Between Requests (ms):';
+  document.getElementById('delayBetweenRequestsHelp').textContent = tr.delayBetweenRequestsHelp || '';
+
+  document.getElementById('toggleBlueBackgroundLabel').textContent = tr.toggleBlueBackgroundLabel || 'Translated Text Blue Background:';
+  document.getElementById('toggleBlueBackgroundHelp').textContent = tr.toggleBlueBackgroundHelp || '';
+
+  document.getElementById('autoTranslationLabel').textContent = tr.autoTranslationLabel || 'Automatic Translation:';
+  document.getElementById('autoTranslationHelp').textContent = tr.autoTranslationHelp || 'If enabled, the texts to be translated will be automatically translated.';
+
+  document.getElementById('showProgressPopupLabel').textContent = tr.showProgressPopupLabel || 'Show Progress Popup:';
+  document.getElementById('showProgressPopupHelp').textContent = tr.showProgressPopupHelp || '';
+
+  document.getElementById('excludeListLabel').textContent = tr.excludeListLabel || 'List of Sites to Exclude:';
+  document.getElementById('excludeListHelp').textContent = tr.excludeListHelp || '';
+
+  document.getElementById('saveBtn').textContent = tr.saveBtn || 'Save Settings';
+  document.title = tr.pageTitle || 'LLM Website Translator Settings';
+}
+
+function showStatus(message, type) {
+  const status = document.getElementById('status');
+  status.textContent = message;
+  status.className = type;
+  status.style.display = 'block';
+  setTimeout(function() {
+    status.style.display = 'none';
+    status.className = '';
+  }, 3000);
+}
+
+function showStatus(message, type) {
+  const status = document.getElementById('status');
+  status.textContent = message;
+  status.className = type;
+  status.style.display = 'block';
+  setTimeout(function() {
+    status.style.display = 'none';
+    status.className = '';
+  }, 3000);
+}
+
 const optionsTranslations = {
   en: {
-    pageTitle: 'Gemini Website Translator Settings',
-    header: 'Gemini Website Translator Settings',
-    apiKeyLabel: 'Gemini API Key:',
-    apiKeyPlaceholder: 'Enter your API key',
-    apiKeyHelp: 'Get your API key from Google AI Studio',
+    pageTitle: 'LLM Website Translator Settings',
+    header: 'LLM Website Translator Settings',
+    apiProviderLabel: 'API Provider:',
+    apiProviderHelp: 'Choose the API provider to use for translation.',
+    apiKeyLabel: 'API Key:',
+    apiKeyHelpGemini: 'Get your API key from <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
+    apiKeyHelpOpenAI: 'Get your API key from <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
+    apiKeyHelpDeepSeek: 'Get your API key from <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyPlaceholderGemini: 'Enter your Gemini API key',
+    apiKeyPlaceholderOpenAI: 'Enter your OpenAI API key',
+    apiKeyPlaceholderDeepSeek: 'Enter your DeepSeek API key',
     aiModelLabel: 'AI Model:',
-    aiModelPlaceholder: 'e.g., gemini-2.0-flash-lite',
-    aiModelHelp: 'If left blank, gemini-2.0-flash-lite will be used.',
+    aiModelHelpGemini: 'If left blank, gemini-2.0-flash-lite will be used.',
+    aiModelHelpOpenAI: 'If left blank, gpt-4o-mini will be used.',
+    aiModelHelpDeepSeek: 'If left blank, deepseek-chat will be used.',
+    aiModelPlaceholderGemini: 'e.g., gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: 'e.g., gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: 'e.g., deepseek-chat',
     batchSizeLabel: 'Batch Size (Number of Texts):',
     batchSizeHelp: 'Number of texts to translate at once. Higher is more efficient, but too many may cause errors.',
     maxBatchLengthLabel: 'Max Batch Length (Characters):',
@@ -110,18 +214,27 @@ const optionsTranslations = {
     excludeListLabel: 'List of Sites to Exclude:',
     excludeListHelp: 'Enter each URL on a new line. Sites listed here will not be automatically translated.',
     saveBtn: 'Save Settings',
-    noApiKey: 'Please enter an API key.',
     savedSettings: 'Settings saved!'
   },
   ja: {
-    pageTitle: 'Gemini ウェブサイト翻訳設定',
-    header: 'Gemini ウェブサイト翻訳設定',
-    apiKeyLabel: 'Gemini API キー:',
-    apiKeyPlaceholder: 'APIキーを入力してください',
-    apiKeyHelp: 'Google AI StudioからAPIキーを取得できます',
+    pageTitle: 'LLM ウェブサイト翻訳設定',
+    header: 'LLM ウェブサイト翻訳設定',
+    apiProviderLabel: 'APIプロバイダー:',
+    apiProviderHelp: '翻訳に使用するAIプロバイダーを選択してください。',
+    apiKeyLabel: 'APIキー:',
+    apiKeyHelpGemini: '<a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>からAPIキーを取得してください。',
+    apiKeyHelpOpenAI: '<a href="https://platform.openai.com/" target="_blank">OpenAI</a>からAPIキーを取得してください。',
+    apiKeyHelpDeepSeek: '<a href="https://deepseek.com/" target="_blank">DeepSeek</a>からAPIキーを取得してください。',
+    apiKeyPlaceholderGemini: 'Gemini APIキーを入力してください',
+    apiKeyPlaceholderOpenAI: 'OpenAI APIキーを入力してください',
+    apiKeyPlaceholderDeepSeek: 'DeepSeek APIキーを入力してください',
     aiModelLabel: 'AIモデル:',
-    aiModelPlaceholder: '例: gemini-2.0-flash-lite',
-    aiModelHelp: '何も入力されていない場合、 gemini-2.0-flash-lite が使用されます。',
+    aiModelHelpGemini: '空白の場合、gemini-2.0-flash-liteが使用されます。',
+    aiModelHelpOpenAI: '空白の場合、gpt-4o-miniが使用されます。',
+    aiModelHelpDeepSeek: '空白の場合、deepseek-chatが使用されます。',
+    aiModelPlaceholderGemini: '例: gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: '例: gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: '例: deepseek-chat',
     batchSizeLabel: 'バッチサイズ (テキスト数):',
     batchSizeHelp: '一度に翻訳するテキストの数。多いほど効率的ですが、あまり多すぎるとエラーになる可能性があります。',
     maxBatchLengthLabel: '最大バッチ長 (文字数):',
@@ -136,181 +249,244 @@ const optionsTranslations = {
     showProgressPopupHelp: '翻訳中に進捗状況を示すポップアップを表示するかどうかを切り替えます。',
     excludeListLabel: '翻訳を使用しないサイト一覧:',
     excludeListHelp: '各URLは改行区切りで入力してください。これらのサイトは自動翻訳されません。',
-    saveBtn: 'Save Settings',
-    noApiKey: 'APIキーを入力してください',
+    saveBtn: '設定を保存',
     savedSettings: '設定を保存しました！'
   },
   fr: {
-    pageTitle: 'Paramètres du Traducteur de Sites Web Gemini',
-    header: 'Paramètres du Traducteur de Sites Web Gemini',
-    apiKeyLabel: 'Clé API Gemini:',
-    apiKeyPlaceholder: 'Entrez votre clé API',
-    apiKeyHelp: 'Obtenez votre clé API depuis Google AI Studio',
-    aiModelLabel: 'Modèle d\'IA:',
-    aiModelPlaceholder: 'par ex., gemini-2.0-flash-lite',
-    aiModelHelp: 'Si laissé vide, gemini-2.0-flash-lite sera utilisé.',
-    batchSizeLabel: 'Taille du lot (nombre de textes):',
-    batchSizeHelp: 'Nombre de textes à traduire simultanément. Plus c\'est élevé, plus c\'est efficace, mais un trop grand nombre peut entraîner des erreurs.',
-    maxBatchLengthLabel: 'Longueur maximale du lot (caractères):',
-    maxBatchLengthHelp: 'Nombre total maximal de caractères dans un lot. Si dépassé, le lot sera divisé.',
-    delayBetweenRequestsLabel: 'Délai entre les requêtes (ms):',
-    delayBetweenRequestsHelp: 'Temps d\'attente entre les appels API. Des délais plus longs peuvent aider à éviter les erreurs de limite de requêtes.',
-    toggleBlueBackgroundLabel: 'Fond bleu pour le texte traduit:',
-    toggleBlueBackgroundHelp: 'Activez ou désactivez l\'affichage d\'un fond bleu pour le texte traduit.',
-    autoTranslationLabel: 'Traduction automatique:',
-    autoTranslationHelp: 'Si activée, les textes à traduire seront automatiquement traduits.',
-    showProgressPopupLabel: 'Afficher la fenêtre de progression:',
-    showProgressPopupHelp: 'Activez ou désactivez l\'affichage d\'une fenêtre montrant la progression de la traduction.',
-    excludeListLabel: 'Liste des sites à exclure:',
-    excludeListHelp: 'Entrez chaque URL sur une nouvelle ligne. Les sites listés ne seront pas automatiquement traduits.',
-    saveBtn: 'Save Settings',
-    noApiKey: 'Veuillez entrer une clé API.',
+    pageTitle: 'Paramètres du traducteur de site Web LLM',
+    header: 'Paramètres du traducteur de site Web LLM',
+    apiProviderLabel: 'Fournisseur API :',
+    apiProviderHelp: 'Choisissez le fournisseur API à utiliser pour la traduction.',
+    apiKeyLabel: 'Clé API :',
+    apiKeyHelpGemini: 'Obtenez votre clé API sur <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
+    apiKeyHelpOpenAI: 'Obtenez votre clé API sur <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
+    apiKeyHelpDeepSeek: 'Obtenez votre clé API sur <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyPlaceholderGemini: 'Entrez votre clé API Gemini',
+    apiKeyPlaceholderOpenAI: 'Entrez votre clé API OpenAI',
+    apiKeyPlaceholderDeepSeek: 'Entrez votre clé API DeepSeek',
+    aiModelLabel: 'Modèle AI :',
+    aiModelHelpGemini: 'Si vide, gemini-2.0-flash-lite sera utilisé.',
+    aiModelHelpOpenAI: 'Si vide, gpt-4o-mini sera utilisé.',
+    aiModelHelpDeepSeek: 'Si vide, deepseek-chat sera utilisé.',
+    aiModelPlaceholderGemini: 'ex. : gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: 'ex. : gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: 'ex. : deepseek-chat',
+    batchSizeLabel: 'Taille du lot (nombre de textes) :',
+    batchSizeHelp: 'Nombre de textes à traduire en une fois. Plus élevé est plus efficace, mais trop peut causer des erreurs.',
+    maxBatchLengthLabel: 'Longueur maximale du lot (caractères) :',
+    maxBatchLengthHelp: 'Nombre total maximum de caractères dans un lot. Si dépassé, le lot sera divisé.',
+    delayBetweenRequestsLabel: 'Délai entre les requêtes (ms) :',
+    delayBetweenRequestsHelp: 'Temps d\'attente entre les appels API. Des délais plus longs peuvent aider à éviter les erreurs de limitation de débit.',
+    toggleBlueBackgroundLabel: 'Fond bleu pour le texte traduit :',
+    toggleBlueBackgroundHelp: 'Activer ou désactiver l\'application d\'un fond bleu aux textes traduits.',
+    autoTranslationLabel: 'Traduction automatique :',
+    autoTranslationHelp: 'Si activé, les textes à traduire seront automatiquement traduits.',
+    showProgressPopupLabel: 'Afficher la fenêtre contextuelle de progression :',
+    showProgressPopupHelp: 'Activer ou désactiver l\'affichage d\'une fenêtre contextuelle pendant la traduction.',
+    excludeListLabel: 'Liste des sites à exclure :',
+    excludeListHelp: 'Entrez chaque URL sur une nouvelle ligne. Les sites listés ici ne seront pas traduits automatiquement.',
+    saveBtn: 'Enregistrer les paramètres',
     savedSettings: 'Paramètres enregistrés !'
   },
   de: {
-    pageTitle: 'Einstellungen für den Gemini Website Translator',
-    header: 'Einstellungen für den Gemini Website Translator',
-    apiKeyLabel: 'Gemini API-Schlüssel:',
-    apiKeyPlaceholder: 'Geben Sie Ihren API-Schlüssel ein',
-    apiKeyHelp: 'Holen Sie sich Ihren API-Schlüssel von Google AI Studio',
+    pageTitle: 'Einstellungen für den LLM Website Translator',
+    header: 'Einstellungen für den LLM Website Translator',
+    apiProviderLabel: 'API-Anbieter:',
+    apiProviderHelp: 'Wählen Sie den API-Anbieter für die Übersetzung aus.',
+    apiKeyLabel: 'API-Schlüssel:',
+    apiKeyHelpGemini: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
+    apiKeyHelpOpenAI: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
+    apiKeyHelpDeepSeek: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyPlaceholderGemini: 'Geben Sie Ihren Gemini API-Schlüssel ein',
+    apiKeyPlaceholderOpenAI: 'Geben Sie Ihren OpenAI API-Schlüssel ein',
+    apiKeyPlaceholderDeepSeek: 'Geben Sie Ihren DeepSeek API-Schlüssel ein',
     aiModelLabel: 'KI-Modell:',
-    aiModelPlaceholder: 'z.B. gemini-2.0-flash-lite',
-    aiModelHelp: 'Wenn nichts eingegeben wird, wird gemini-2.0-flash-lite verwendet.',
-    batchSizeLabel: 'Batch-Größe (Anzahl Texte):',
-    batchSizeHelp: 'Anzahl der Texte, die gleichzeitig übersetzt werden. Höhere Werte sind effizienter, zu hohe können jedoch Fehler verursachen.',
+    aiModelHelpGemini: 'Wenn leer, wird gemini-2.0-flash-lite verwendet.',
+    aiModelHelpOpenAI: 'Wenn leer, wird gpt-4o-mini verwendet.',
+    aiModelHelpDeepSeek: 'Wenn leer, wird deepseek-chat verwendet.',
+    aiModelPlaceholderGemini: 'z.B. gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: 'z.B. gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: 'z.B. deepseek-chat',
+    batchSizeLabel: 'Batch-Größe (Anzahl der Texte):',
+    batchSizeHelp: 'Anzahl der Texte, die gleichzeitig übersetzt werden. Höher ist effizienter, aber zu viele können Fehler verursachen.',
     maxBatchLengthLabel: 'Maximale Batch-Länge (Zeichen):',
-    maxBatchLengthHelp: 'Maximale Gesamtzeichen in einem Batch. Wird dieser Wert überschritten, wird der Batch aufgeteilt.',
+    maxBatchLengthHelp: 'Maximale Gesamtzeichen in einem Batch. Bei Überschreitung wird der Batch aufgeteilt.',
     delayBetweenRequestsLabel: 'Verzögerung zwischen Anfragen (ms):',
-    delayBetweenRequestsHelp: 'Wartezeit zwischen API-Aufrufen. Längere Wartezeiten können helfen, Ratenbegrenzungsfehler zu vermeiden.',
+    delayBetweenRequestsHelp: 'Wartezeit zwischen API-Aufrufen. Längere Verzögerungen können helfen, Ratenbegrenzungsfehler zu vermeiden.',
     toggleBlueBackgroundLabel: 'Blauer Hintergrund für übersetzten Text:',
-    toggleBlueBackgroundHelp: 'Schalten Sie ein, ob ein blauer Hintergrund für den übersetzten Text angezeigt werden soll.',
+    toggleBlueBackgroundHelp: 'Schalten Sie um, ob ein blauer Hintergrund auf übersetzte Texte angewendet werden soll.',
     autoTranslationLabel: 'Automatische Übersetzung:',
     autoTranslationHelp: 'Wenn aktiviert, werden die zu übersetzenden Texte automatisch übersetzt.',
-    showProgressPopupLabel: 'Fortschrittsanzeige anzeigen:',
-    showProgressPopupHelp: 'Schalten Sie ein, ob während der Übersetzung ein Popup mit dem Fortschritt angezeigt werden soll.',
-    excludeListLabel: 'Liste der auszuschließenden Seiten:',
-    excludeListHelp: 'Geben Sie jede URL in einer neuen Zeile ein. Die hier aufgeführten Seiten werden nicht automatisch übersetzt.',
-    saveBtn: 'Save Settings',
-    noApiKey: 'Bitte geben Sie einen API-Schlüssel ein.',
+    showProgressPopupLabel: 'Fortschritts-Popup anzeigen:',
+    showProgressPopupHelp: 'Schalten Sie um, ob ein Popup während der Übersetzung angezeigt werden soll.',
+    excludeListLabel: 'Liste der auszuschließenden Websites:',
+    excludeListHelp: 'Geben Sie jede URL in einer neuen Zeile ein. Die hier aufgeführten Websites werden nicht automatisch übersetzt.',
+    saveBtn: 'Einstellungen speichern',
     savedSettings: 'Einstellungen gespeichert!'
   },
   es: {
-    pageTitle: 'Configuración del Traductor de Sitios Web Gemini',
-    header: 'Configuración del Traductor de Sitios Web Gemini',
-    apiKeyLabel: 'Clave API de Gemini:',
-    apiKeyPlaceholder: 'Introduce tu clave API',
-    apiKeyHelp: 'Obtén tu clave API en Google AI Studio',
+    pageTitle: 'Configuración del traductor de sitios web LLM',
+    header: 'Configuración del traductor de sitios web LLM',
+    apiProviderLabel: 'Proveedor de API:',
+    apiProviderHelp: 'Elija el proveedor de API para usar en la traducción.',
+    apiKeyLabel: 'Clave API:',
+    apiKeyHelpGemini: 'Obtenga su clave API en <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
+    apiKeyHelpOpenAI: 'Obtenga su clave API en <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
+    apiKeyHelpDeepSeek: 'Obtenga su clave API en <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyPlaceholderGemini: 'Ingrese su clave API de Gemini',
+    apiKeyPlaceholderOpenAI: 'Ingrese su clave API de OpenAI',
+    apiKeyPlaceholderDeepSeek: 'Ingrese su clave API de DeepSeek',
     aiModelLabel: 'Modelo de IA:',
-    aiModelPlaceholder: 'por ejemplo, gemini-2.0-flash-lite',
-    aiModelHelp: 'Si se deja en blanco, se utilizará gemini-2.0-flash-lite.',
+    aiModelHelpGemini: 'Si se deja en blanco, se usará gemini-2.0-flash-lite.',
+    aiModelHelpOpenAI: 'Si se deja en blanco, se usará gpt-4o-mini.',
+    aiModelHelpDeepSeek: 'Si se deja en blanco, se usará deepseek-chat.',
+    aiModelPlaceholderGemini: 'ejemplo: gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: 'ejemplo: gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: 'ejemplo: deepseek-chat',
     batchSizeLabel: 'Tamaño del lote (número de textos):',
-    batchSizeHelp: 'Número de textos a traducir simultáneamente. Un valor mayor es más eficiente, pero un número demasiado alto puede causar errores.',
+    batchSizeHelp: 'Número de textos a traducir a la vez. Un valor más alto es más eficiente, pero demasiados pueden causar errores.',
     maxBatchLengthLabel: 'Longitud máxima del lote (caracteres):',
-    maxBatchLengthHelp: 'Número total máximo de caracteres en un lote. Si se excede, el lote se dividirá.',
+    maxBatchLengthHelp: 'Máximo total de caracteres en un lote. Si se excede, el lote se dividirá.',
     delayBetweenRequestsLabel: 'Retraso entre solicitudes (ms):',
-    delayBetweenRequestsHelp: 'Tiempo de espera entre llamadas a la API. Retrasos más largos pueden ayudar a evitar errores por límite de solicitudes.',
-    toggleBlueBackgroundLabel: 'Fondo azul para el texto traducido:',
-    toggleBlueBackgroundHelp: 'Activa o desactiva la aplicación de un fondo azul al texto traducido.',
+    delayBetweenRequestsHelp: 'Tiempo de espera entre llamadas a la API. Retrasos más largos pueden ayudar a evitar errores de límite de tasa.',
+    toggleBlueBackgroundLabel: 'Fondo azul para texto traducido:',
+    toggleBlueBackgroundHelp: 'Alternar si se debe aplicar un fondo azul a los textos traducidos.',
     autoTranslationLabel: 'Traducción automática:',
-    autoTranslationHelp: 'Si está activada, los textos a traducir se traducirán automáticamente.',
-    showProgressPopupLabel: 'Mostrar ventana de progreso:',
-    showProgressPopupHelp: 'Activa o desactiva la visualización de un popup durante la traducción.',
+    autoTranslationHelp: 'Si está habilitado, los textos a traducir se traducirán automáticamente.',
+    showProgressPopupLabel: 'Mostrar ventana emergente de progreso:',
+    showProgressPopupHelp: 'Alternar si se debe mostrar una ventana emergente durante la traducción.',
     excludeListLabel: 'Lista de sitios a excluir:',
-    excludeListHelp: 'Introduce cada URL en una nueva línea. Los sitios listados no se traducirán automáticamente.',
-    saveBtn: 'Save Settings',
-    noApiKey: 'Por favor, introduce una clave API.',
+    excludeListHelp: 'Ingrese cada URL en una nueva línea. Los sitios listados aquí no se traducirán automáticamente.',
+    saveBtn: 'Guardar configuración',
     savedSettings: '¡Configuración guardada!'
   },
   it: {
-    pageTitle: 'Impostazioni del Traduttore di Siti Web Gemini',
-    header: 'Impostazioni del Traduttore di Siti Web Gemini',
-    apiKeyLabel: 'Chiave API Gemini:',
-    apiKeyPlaceholder: 'Inserisci la tua chiave API',
-    apiKeyHelp: 'Ottieni la tua chiave API da Google AI Studio',
-    aiModelLabel: 'Modello IA:',
-    aiModelPlaceholder: 'es. gemini-2.0-flash-lite',
-    aiModelHelp: 'Se lasciato vuoto, verrà utilizzato gemini-2.0-flash-lite.',
+    pageTitle: 'Impostazioni del traduttore di siti web LLM',
+    header: 'Impostazioni del traduttore di siti web LLM',
+    apiProviderLabel: 'Fornitore API:',
+    apiProviderHelp: 'Scegli il fornitore API da utilizzare per la traduzione.',
+    apiKeyLabel: 'Chiave API:',
+    apiKeyHelpGemini: 'Ottieni la tua chiave API da <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
+    apiKeyHelpOpenAI: 'Ottieni la tua chiave API da <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
+    apiKeyHelpDeepSeek: 'Ottieni la tua chiave API da <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyPlaceholderGemini: 'Inserisci la tua chiave API Gemini',
+    apiKeyPlaceholderOpenAI: 'Inserisci la tua chiave API OpenAI',
+    apiKeyPlaceholderDeepSeek: 'Inserisci la tua chiave API DeepSeek',
+    aiModelLabel: 'Modello AI:',
+    aiModelHelpGemini: 'Se lasciato vuoto, verrà utilizzato gemini-2.0-flash-lite.',
+    aiModelHelpOpenAI: 'Se lasciato vuoto, verrà utilizzato gpt-4o-mini.',
+    aiModelHelpDeepSeek: 'Se lasciato vuoto, verrà utilizzato deepseek-chat.',
+    aiModelPlaceholderGemini: 'es. gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: 'es. gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: 'es. deepseek-chat',
     batchSizeLabel: 'Dimensione del lotto (numero di testi):',
-    batchSizeHelp: 'Numero di testi da tradurre contemporaneamente. Valori più alti sono più efficienti, ma un numero troppo elevato potrebbe causare errori.',
+    batchSizeHelp: 'Numero di testi da tradurre contemporaneamente. Valori più alti sono più efficienti, ma troppi possono causare errori.',
     maxBatchLengthLabel: 'Lunghezza massima del lotto (caratteri):',
-    maxBatchLengthHelp: 'Numero massimo di caratteri in un lotto. Se superato, il lotto verrà diviso.',
-    delayBetweenRequestsLabel: 'Intervallo tra le richieste (ms):',
-    delayBetweenRequestsHelp: 'Tempo di attesa tra le chiamate API. Intervalli più lunghi possono aiutare a evitare errori di limite di richieste.',
+    maxBatchLengthHelp: 'Massimo totale di caratteri in un lotto. Se superato, il lotto verrà diviso.',
+    delayBetweenRequestsLabel: 'Ritardo tra le richieste (ms):',
+    delayBetweenRequestsHelp: 'Tempo di attesa tra le chiamate API. Ritardi più lunghi possono aiutare a evitare errori di limite di tasso.',
     toggleBlueBackgroundLabel: 'Sfondo blu per il testo tradotto:',
-    toggleBlueBackgroundHelp: 'Attiva o disattiva l\'applicazione di uno sfondo blu al testo tradotto.',
+    toggleBlueBackgroundHelp: 'Attiva/disattiva l\'applicazione di uno sfondo blu ai testi tradotti.',
     autoTranslationLabel: 'Traduzione automatica:',
-    autoTranslationHelp: 'Se abilitata, i testi da tradurre verranno tradotti automaticamente.',
-    showProgressPopupLabel: 'Mostra popup di avanzamento:',
-    showProgressPopupHelp: 'Attiva o disattiva la visualizzazione di un popup durante la traduzione.',
+    autoTranslationHelp: 'Se abilitato, i testi da tradurre saranno tradotti automaticamente.',
+    showProgressPopupLabel: 'Mostra popup di progresso:',
+    showProgressPopupHelp: 'Attiva/disattiva la visualizzazione di un popup durante la traduzione.',
     excludeListLabel: 'Elenco dei siti da escludere:',
-    excludeListHelp: 'Inserisci ogni URL su una nuova riga. I siti elencati non verranno tradotti automaticamente.',
-    saveBtn: 'Save Settings',
-    noApiKey: 'Per favore, inserisci una chiave API.',
+    excludeListHelp: 'Inserisci ogni URL su una nuova riga. I siti elencati qui non verranno tradotti automaticamente.',
+    saveBtn: 'Salva impostazioni',
     savedSettings: 'Impostazioni salvate!'
   },
   pt: {
-    pageTitle: 'Configurações do Tradutor de Sites Gemini',
-    header: 'Configurações do Tradutor de Sites Gemini',
-    apiKeyLabel: 'Chave API Gemini:',
-    apiKeyPlaceholder: 'Insira sua chave API',
-    apiKeyHelp: 'Obtenha sua chave API no Google AI Studio',
+    pageTitle: 'Configurações do Tradutor de Sites LLM',
+    header: 'Configurações do Tradutor de Sites LLM',
+    apiProviderLabel: 'Provedor de API:',
+    apiProviderHelp: 'Escolha o provedor de API para usar na tradução.',
+    apiKeyLabel: 'Chave API:',
+    apiKeyHelpGemini: 'Obtenha sua chave API no <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
+    apiKeyHelpOpenAI: 'Obtenha sua chave API no <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
+    apiKeyHelpDeepSeek: 'Obtenha sua chave API no <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyPlaceholderGemini: 'Digite sua chave API do Gemini',
+    apiKeyPlaceholderOpenAI: 'Digite sua chave API do OpenAI',
+    apiKeyPlaceholderDeepSeek: 'Digite sua chave API do DeepSeek',
     aiModelLabel: 'Modelo de IA:',
-    aiModelPlaceholder: 'ex.: gemini-2.0-flash-lite',
-    aiModelHelp: 'Se deixado em branco, será usado gemini-2.0-flash-lite.',
-    batchSizeLabel: 'Tamanho do Lote (Número de Textos):',
-    batchSizeHelp: 'Número de textos a serem traduzidos de uma vez. Valores maiores são mais eficientes, mas muitos textos podem causar erros.',
-    maxBatchLengthLabel: 'Comprimento Máximo do Lote (Caracteres):',
-    maxBatchLengthHelp: 'Número máximo de caracteres em um lote. Se excedido, o lote será dividido.',
-    delayBetweenRequestsLabel: 'Intervalo Entre Requisições (ms):',
-    delayBetweenRequestsHelp: 'Tempo de espera entre chamadas à API. Intervalos mais longos podem ajudar a evitar erros de limite de requisições.',
-    toggleBlueBackgroundLabel: 'Fundo Azul para o Texto Traduzido:',
-    toggleBlueBackgroundHelp: 'Ative ou desative a aplicação de um fundo azul ao texto traduzido.',
-    autoTranslationLabel: 'Tradução Automática:',
-    autoTranslationHelp: 'Se ativada, os textos a serem traduzidos serão traduzidos automaticamente.',
-    showProgressPopupLabel: 'Exibir Popup de Progresso:',
-    showProgressPopupHelp: 'Ative ou desative a exibição de um popup durante a tradução.',
-    excludeListLabel: 'Lista de Sites a Excluir:',
-    excludeListHelp: 'Insira cada URL em uma nova linha. Os sites listados não serão traduzidos automaticamente.',
-    saveBtn: 'Save Settings',
-    noApiKey: 'Por favor, insira uma chave API.',
+    aiModelHelpGemini: 'Se deixado em branco, gemini-2.0-flash-lite será usado.',
+    aiModelHelpOpenAI: 'Se deixado em branco, gpt-4o-mini será usado.',
+    aiModelHelpDeepSeek: 'Se deixado em branco, deepseek-chat será usado.',
+    aiModelPlaceholderGemini: 'ex.: gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: 'ex.: gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: 'ex.: deepseek-chat',
+    batchSizeLabel: 'Tamanho do lote (número de textos):',
+    batchSizeHelp: 'Número de textos a traduzir de uma vez. Valores mais altos são mais eficientes, mas muitos podem causar erros.',
+    maxBatchLengthLabel: 'Comprimento máximo do lote (caracteres):',
+    maxBatchLengthHelp: 'Máximo total de caracteres em um lote. Se excedido, o lote será dividido.',
+    delayBetweenRequestsLabel: 'Atraso entre solicitações (ms):',
+    delayBetweenRequestsHelp: 'Tempo de espera entre chamadas à API. Atrasos mais longos podem ajudar a evitar erros de limite de taxa.',
+    toggleBlueBackgroundLabel: 'Fundo azul para texto traduzido:',
+    toggleBlueBackgroundHelp: 'Alternar se deve aplicar um fundo azul aos textos traduzidos.',
+    autoTranslationLabel: 'Tradução automática:',
+    autoTranslationHelp: 'Se habilitado, os textos a serem traduzidos serão traduzidos automaticamente.',
+    showProgressPopupLabel: 'Mostrar popup de progresso:',
+    showProgressPopupHelp: 'Alternar se deve exibir um popup durante a tradução.',
+    excludeListLabel: 'Lista de sites a excluir:',
+    excludeListHelp: 'Digite cada URL em uma nova linha. Os sites listados aqui não serão traduzidos automaticamente.',
+    saveBtn: 'Salvar configurações',
     savedSettings: 'Configurações salvas!'
   },
   ru: {
-    pageTitle: 'Настройки Gemini Website Translator',
-    header: 'Настройки Gemini Website Translator',
-    apiKeyLabel: 'API-ключ Gemini:',
-    apiKeyPlaceholder: 'Введите ваш API-ключ',
-    apiKeyHelp: 'Получите ваш API-ключ в Google AI Studio',
+    pageTitle: 'Настройки переводчика сайтов LLM',
+    header: 'Настройки переводчика сайтов LLM',
+    apiProviderLabel: 'Провайдер API:',
+    apiProviderHelp: 'Выберите провайдера API для использования в переводе.',
+    apiKeyLabel: 'API-ключ:',
+    apiKeyHelpGemini: 'Получите ваш API-ключ на <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
+    apiKeyHelpOpenAI: 'Получите ваш API-ключ на <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
+    apiKeyHelpDeepSeek: 'Получите ваш API-ключ на <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyPlaceholderGemini: 'Введите ваш API-ключ Gemini',
+    apiKeyPlaceholderOpenAI: 'Введите ваш API-ключ OpenAI',
+    apiKeyPlaceholderDeepSeek: 'Введите ваш API-ключ DeepSeek',
     aiModelLabel: 'Модель ИИ:',
-    aiModelPlaceholder: 'например, gemini-2.0-flash-lite',
-    aiModelHelp: 'Если оставить пустым, будет использоваться gemini-2.0-flash-lite.',
+    aiModelHelpGemini: 'Если оставить пустым, будет использоваться gemini-2.0-flash-lite.',
+    aiModelHelpOpenAI: 'Если оставить пустым, будет использоваться gpt-4o-mini.',
+    aiModelHelpDeepSeek: 'Если оставить пустым, будет использоваться deepseek-chat.',
+    aiModelPlaceholderGemini: 'напр., gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: 'напр., gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: 'напр., deepseek-chat',
     batchSizeLabel: 'Размер партии (количество текстов):',
-    batchSizeHelp: 'Количество текстов для одновременного перевода. Большее значение эффективнее, но слишком большое может привести к ошибкам.',
+    batchSizeHelp: 'Количество текстов для перевода за один раз. Более высокие значения более эффективны, но слишком много может вызвать ошибки.',
     maxBatchLengthLabel: 'Максимальная длина партии (символы):',
-    maxBatchLengthHelp: 'Максимальное количество символов в партии. При превышении партия будет разделена.',
+    maxBatchLengthHelp: 'Максимальное общее количество символов в партии. При превышении партия будет разделена.',
     delayBetweenRequestsLabel: 'Задержка между запросами (мс):',
-    delayBetweenRequestsHelp: 'Время ожидания между вызовами API. Более длительные задержки помогут избежать ошибок лимита запросов.',
-    toggleBlueBackgroundLabel: 'Синий фон для переведённого текста:',
-    toggleBlueBackgroundHelp: 'Включите, чтобы применять синий фон к переведённому тексту.',
+    delayBetweenRequestsHelp: 'Время ожидания между вызовами API. Более длительные задержки могут помочь избежать ошибок ограничения скорости.',
+    toggleBlueBackgroundLabel: 'Синий фон для переведенного текста:',
+    toggleBlueBackgroundHelp: 'Переключить, применять ли синий фон к переведенным текстам.',
     autoTranslationLabel: 'Автоматический перевод:',
-    autoTranslationHelp: 'Если включено, тексты для перевода будут автоматически переведены.',
-    showProgressPopupLabel: 'Показывать всплывающее окно прогресса:',
-    showProgressPopupHelp: 'Включите, чтобы отображалось всплывающее окно с информацией о прогрессе перевода.',
+    autoTranslationHelp: 'Если включено, тексты для перевода будут переведены автоматически.',
+    showProgressPopupLabel: 'Показать всплывающее окно прогресса:',
+    showProgressPopupHelp: 'Переключить, отображать ли всплывающее окно во время перевода.',
     excludeListLabel: 'Список сайтов для исключения:',
-    excludeListHelp: 'Введите каждый URL на новой строке. Сайты в этом списке не будут автоматически переводиться.',
-    saveBtn: 'Save Settings',
-    noApiKey: 'Пожалуйста, введите API-ключ.',
+    excludeListHelp: 'Введите каждую URL-адрес на новой строке. Сайты, перечисленные здесь, не будут автоматически переводиться.',
+    saveBtn: 'Сохранить настройки',
     savedSettings: 'Настройки сохранены!'
   },
   zh: {
-    pageTitle: 'Gemini 网站翻译设置',
-    header: 'Gemini 网站翻译设置',
-    apiKeyLabel: 'Gemini API 密钥:',
-    apiKeyPlaceholder: '请输入您的 API 密钥',
-    apiKeyHelp: '从 Google AI Studio 获取您的 API 密钥',
+    pageTitle: 'LLM 网站翻译设置',
+    header: 'LLM 网站翻译设置',
+    apiProviderLabel: 'API 提供商:',
+    apiProviderHelp: '选择用于翻译的 API 提供商。',
+    apiKeyLabel: 'API 密钥:',
+    apiKeyHelpGemini: '从 <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a> 获取您的 API 密钥。',
+    apiKeyHelpOpenAI: '从 <a href="https://platform.openai.com/" target="_blank">OpenAI</a> 获取您的 API 密钥。',
+    apiKeyHelpDeepSeek: '从 <a href="https://deepseek.com/" target="_blank">DeepSeek</a> 获取您的 API 密钥。',
+    apiKeyPlaceholderGemini: '输入您的 Gemini API 密钥',
+    apiKeyPlaceholderOpenAI: '输入您的 OpenAI API 密钥',
+    apiKeyPlaceholderDeepSeek: '输入您的 DeepSeek API 密钥',
     aiModelLabel: 'AI 模型:',
-    aiModelPlaceholder: '例如，gemini-2.0-flash-lite',
-    aiModelHelp: '如果留空，将使用 gemini-2.0-flash-lite。',
+    aiModelHelpGemini: '如果留空，将使用 gemini-2.0-flash-lite。',
+    aiModelHelpOpenAI: '如果留空，将使用 gpt-4o-mini。',
+    aiModelHelpDeepSeek: '如果留空，将使用 deepseek-chat。',
+    aiModelPlaceholderGemini: '例如：gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: '例如：gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: '例如：deepseek-chat',
     batchSizeLabel: '批处理大小 (文本数量):',
     batchSizeHelp: '一次翻译的文本数量。数值越高效率越高，但过多可能导致错误。',
     maxBatchLengthLabel: '批处理最大长度 (字符数):',
@@ -325,25 +501,34 @@ const optionsTranslations = {
     showProgressPopupHelp: '切换是否在翻译期间显示进度弹窗。',
     excludeListLabel: '排除翻译的网站列表:',
     excludeListHelp: '每行输入一个 URL。此列表中的网站将不会被自动翻译。',
-    saveBtn: 'Save Settings',
-    noApiKey: '请输入 API 密钥。',
+    saveBtn: '保存设置',
     savedSettings: '设置已保存！'
   },
   ko: {
-    pageTitle: 'Gemini 웹사이트 번역 설정',
-    header: 'Gemini 웹사이트 번역 설정',
-    apiKeyLabel: 'Gemini API 키:',
-    apiKeyPlaceholder: 'API 키를 입력하세요',
-    apiKeyHelp: 'Google AI Studio에서 API 키를 받을 수 있습니다',
+    pageTitle: 'LLM 웹사이트 번역 설정',
+    header: 'LLM 웹사이트 번역 설정',
+    apiProviderLabel: 'API 제공자:',
+    apiProviderHelp: '번역에 사용할 API 제공자를 선택하세요.',
+    apiKeyLabel: 'API 키:',
+    apiKeyHelpGemini: '<a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>에서 API 키를 받으세요.',
+    apiKeyHelpOpenAI: '<a href="https://platform.openai.com/" target="_blank">OpenAI</a>에서 API 키를 받으세요.',
+    apiKeyHelpDeepSeek: '<a href="https://deepseek.com/" target="_blank">DeepSeek</a>에서 API 키를 받으세요.',
+    apiKeyPlaceholderGemini: 'Gemini API 키를 입력하세요',
+    apiKeyPlaceholderOpenAI: 'OpenAI API 키를 입력하세요',
+    apiKeyPlaceholderDeepSeek: 'DeepSeek API 키를 입력하세요',
     aiModelLabel: 'AI 모델:',
-    aiModelPlaceholder: '예: gemini-2.0-flash-lite',
-    aiModelHelp: '빈 칸으로 두면 gemini-2.0-flash-lite가 사용됩니다.',
+    aiModelHelpGemini: '비워두면 gemini-2.0-flash-lite가 사용됩니다.',
+    aiModelHelpOpenAI: '비워두면 gpt-4o-mini가 사용됩니다.',
+    aiModelHelpDeepSeek: '비워두면 deepseek-chat가 사용됩니다.',
+    aiModelPlaceholderGemini: '예: gemini-2.0-flash-lite',
+    aiModelPlaceholderOpenAI: '예: gpt-4o-mini',
+    aiModelPlaceholderDeepSeek: '예: deepseek-chat',
     batchSizeLabel: '배치 크기 (텍스트 수):',
-    batchSizeHelp: '한 번에 번역할 텍스트의 수입니다. 숫자가 클수록 효율적이지만, 너무 많으면 오류가 발생할 수 있습니다.',
+    batchSizeHelp: '한 번에 번역할 텍스트의 수. 숫자가 클수록 효율적이지만, 너무 많으면 오류가 발생할 수 있습니다.',
     maxBatchLengthLabel: '최대 배치 길이 (문자 수):',
-    maxBatchLengthHelp: '배치 내 텍스트의 총 최대 문자 수입니다. 이 수치를 초과하면 배치가 분할됩니다.',
+    maxBatchLengthHelp: '배치 내 텍스트의 총 최대 문자 수. 이 수치를 초과하면 배치가 분할됩니다.',
     delayBetweenRequestsLabel: '요청 간격 (ms):',
-    delayBetweenRequestsHelp: 'API 호출 간 대기 시간입니다. 대기 시간이 길면 요청 제한 오류를 피할 수 있습니다.',
+    delayBetweenRequestsHelp: 'API 호출 간 대기 시간. 대기 시간이 길면 요청 제한 오류를 피할 수 있습니다.',
     toggleBlueBackgroundLabel: '번역된 텍스트 파란색 배경:',
     toggleBlueBackgroundHelp: '번역된 텍스트에 파란색 배경을 적용할지 여부를 전환합니다.',
     autoTranslationLabel: '자동 번역:',
@@ -352,58 +537,7 @@ const optionsTranslations = {
     showProgressPopupHelp: '번역 중 진행 상황을 보여주는 팝업을 표시할지 여부를 전환합니다.',
     excludeListLabel: '번역 제외 사이트 목록:',
     excludeListHelp: '각 URL을 줄 바꿈으로 구분하여 입력하세요. 이 목록의 사이트는 자동 번역되지 않습니다.',
-    saveBtn: 'Save Settings',
-    noApiKey: 'API 키를 입력하세요',
+    saveBtn: '설정 저장',
     savedSettings: '설정이 저장되었습니다!'
   }
 };
-
-function updateUITranslations(lang) {
-  const tr = optionsTranslations[lang] || optionsTranslations.en;
-  document.getElementById('pageTitle').textContent = tr.pageTitle || 'Gemini Website Translator Settings';
-  document.getElementById('header').textContent = tr.header || 'Gemini Website Translator Settings';
-
-  document.getElementById('apiKeyLabel').textContent = tr.apiKeyLabel || 'Gemini API Key:';
-  document.getElementById('apiKey').placeholder = tr.apiKeyPlaceholder || 'Enter your API key';
-  document.getElementById('apiKeyHelp').textContent = tr.apiKeyHelp || 'Get your API key from Google AI Studio';
-
-  document.getElementById('aiModelLabel').textContent = tr.aiModelLabel || 'AI Model:';
-  document.getElementById('aiModel').placeholder = tr.aiModelPlaceholder || 'e.g., gemini-2.0-flash-lite';
-  document.getElementById('aiModelHelp').textContent = tr.aiModelHelp || 'If left blank, gemini-2.0-flash-lite will be used.';
-
-  document.getElementById('batchSizeLabel').textContent = tr.batchSizeLabel || 'Batch Size (Number of Texts):';
-  document.getElementById('batchSizeHelp').textContent = tr.batchSizeHelp || '';
-
-  document.getElementById('maxBatchLengthLabel').textContent = tr.maxBatchLengthLabel || 'Max Batch Length (Characters):';
-  document.getElementById('maxBatchLengthHelp').textContent = tr.maxBatchLengthHelp || '';
-
-  document.getElementById('delayBetweenRequestsLabel').textContent = tr.delayBetweenRequestsLabel || 'Delay Between Requests (ms):';
-  document.getElementById('delayBetweenRequestsHelp').textContent = tr.delayBetweenRequestsHelp || '';
-
-  document.getElementById('toggleBlueBackgroundLabel').textContent = tr.toggleBlueBackgroundLabel || 'Translated Text Blue Background:';
-  document.getElementById('toggleBlueBackgroundHelp').textContent = tr.toggleBlueBackgroundHelp || '';
-
-
-  document.getElementById('autoTranslationLabel').textContent = tr.autoTranslationLabel || 'Automatic Translation:';
-  document.getElementById('autoTranslationHelp').textContent = tr.autoTranslationHelp || 'If enabled, the texts to be translated will be automatically translated.';
-
-  document.getElementById('showProgressPopupLabel').textContent = tr.showProgressPopupLabel || 'Show Progress Popup:';
-  document.getElementById('showProgressPopupHelp').textContent = tr.showProgressPopupHelp || '';
-
-  document.getElementById('excludeListLabel').textContent = tr.excludeListLabel || 'List of Sites to Exclude:';
-  document.getElementById('excludeListHelp').textContent = tr.excludeListHelp || '';
-
-  document.getElementById('saveBtn').textContent = 'Save Settings';
-  document.title = tr.pageTitle || 'Gemini Website Translator Settings';
-}
-
-function showStatus(message, type) {
-  const status = document.getElementById('status');
-  status.textContent = message;
-  status.className = type;
-  status.style.display = 'block';
-  setTimeout(function() {
-    status.style.display = 'none';
-    status.className = '';
-  }, 3000);
-}
