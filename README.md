@@ -1,7 +1,7 @@
 # Translate Extension
 
-この Chrome 拡張機能は、ウェブページの翻訳を Gemini の API を利用して行うツールです。
-This Chrome extension is a tool that translates web pages using Gemini's API.
+この Chrome 拡張機能は、ウェブページの翻訳を LLM の API を利用して行うツールです。
+This Chrome extension is a tool that translates web pages using LLM's API.
 
 ## Features
 
@@ -9,6 +9,8 @@ This Chrome extension is a tool that translates web pages using Gemini's API.
   - Translates text by replacing the content within the page.
 - 多言語対応（英語、日本語、フランス語、など）
   - Supports multiple languages (e.g., English, Japanese, French, etc.).
+-使用可能なAPI Gemini, OpenAI, DeepSeek
+  - Supports Gemini, OpenAI, and DeepSeek APIs
 
 ## Installation Instructions
 
