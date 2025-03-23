@@ -9,7 +9,7 @@ This Chrome extension is a tool that translates web pages using LLM's API.
   - Translates text by replacing the content within the page.
 - 多言語対応（英語、日本語、フランス語、など）
   - Supports multiple languages (e.g., English, Japanese, French, etc.).
--使用可能なAPI Gemini, OpenAI, DeepSeek
+- 使用可能なAPI Gemini, OpenAI, DeepSeek
   - Supports Gemini, OpenAI, and DeepSeek APIs
 
 ## Installation Instructions
