@@ -14,10 +14,10 @@
 
 ## Installation Instructions
 
-1. このリポジトリをクローンするか、ZIP でダウンロードしてください。
-   1. Clone this repository or download it as a ZIP file.
-2. Chrome の拡張機能画面から「パッケージ化されていない拡張機能を読み込む」をクリックし、このフォルダを指定してください。
-   2. Open Chrome's Extensions page, click on "Load unpacked," and select this folder.
+- 1. このリポジトリをクローンするか、ZIP でダウンロードしてください。
+   - 1. Clone this repository or download it as a ZIP file.
+- 2. Chrome の拡張機能画面から「パッケージ化されていない拡張機能を読み込む」をクリックし、このフォルダを指定してください。
+   - 2. Open Chrome's Extensions page, click on "Load unpacked," and select this folder.
 
 この拡張機能は、以下のChromeウェブストアからも直接インストールできます。
 This extension can also be installed directly from the Chrome Web Store using the link below.
