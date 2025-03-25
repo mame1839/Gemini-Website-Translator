@@ -31,11 +31,13 @@ chrome.runtime.onInstalled.addListener(function(details) {
     if (!items.delayBetweenRequests) chrome.storage.local.set({ delayBetweenRequests: 1000 });
   });
 
-  chrome.storage.local.get(['apiProvider', 'geminiApiKey', 'openaiApiKey', 'deepseekApiKey'], function(items) {
+  chrome.storage.local.get(['apiProvider', 'geminiApiKey', 'openaiApiKey', 'deepseekApiKey', 'anthropicApiKey', 'xaiApiKey'], function(items) {
     if (!items.apiProvider) chrome.storage.local.set({ apiProvider: 'gemini' });
     if (!items.geminiApiKey) chrome.storage.local.set({ geminiApiKey: '' });
     if (!items.openaiApiKey) chrome.storage.local.set({ openaiApiKey: '' });
     if (!items.deepseekApiKey) chrome.storage.local.set({ deepseekApiKey: '' });
+    if (!items.anthropicApiKey) chrome.storage.local.set({ anthropicApiKey: '' });
+    if (!items.xaiApiKey) chrome.storage.local.set({ xaiApiKey: '' });
   });
 
   chrome.storage.local.get(['targetLanguage'], function(items) {
@@ -162,6 +164,10 @@ async function translateTextBatch(batch, targetLanguage, apiProvider) {
     return await translateWithOpenAI(batch, targetLanguage);
   } else if (apiProvider === 'deepseek') {
     return await translateWithDeepSeek(batch, targetLanguage);
+  } else if (apiProvider === 'anthropic') {
+    return await translateWithAnthropic(batch, targetLanguage);
+  } else if (apiProvider === 'xai') {
+    return await translateWithXAI(batch, targetLanguage);
   }
   throw new Error('Unsupported API provider');
 }
@@ -432,6 +438,192 @@ async function translateWithDeepSeek(textItems, targetLanguage) {
             return tryTranslate();
           } else {
             throw new Error('DeepSeek翻訳結果からJSONを抽出できませんでした');
+          }
+        } catch (error) {
+          if (currentRetry < MAX_RETRIES) {
+            currentRetry++;
+            const delay = Math.pow(2, currentRetry) * 1000;
+            await sleep(delay);
+            return tryTranslate();
+          } else {
+            reject(error);
+          }
+        }
+      };
+      tryTranslate();
+    });
+  });
+}
+
+// Anthropic APIでの翻訳処理
+async function translateWithAnthropic(textItems, targetLanguage) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(['anthropicApiKey', 'anthropicModel'], async function(items) {
+      const apiKey = items.anthropicApiKey;
+      let model = (items.anthropicModel || '').trim() || 'claude-3-5-haiku-20241022';
+      if (!apiKey) {
+        reject(new Error('Anthropic APIキーが設定されていません'));
+        return;
+      }
+      const MAX_RETRIES = 5;
+      let currentRetry = 0;
+
+      const tryTranslate = async () => {
+        try {
+          const textObjects = textItems.map(it => ({ id: it.id, text: it.text }));
+          const prompt = `あなたはプロの翻訳家です。以下のJSON配列内の各オブジェクトについて、"text"フィールドの内容を文脈に沿って${getLanguageName(targetLanguage)}に翻訳してください。各オブジェクトは一意な"id"フィールドを持っており、出力時にもその"id"を必ず維持してください。
+【注意点】
+- 固有名詞、プログラムコード、数値の単位など、翻訳するのに相応しくないと考えられるものはそのままにしてください。
+- 翻訳結果は文脈に沿った自然な表現にしてください。
+- 出力は以下のJSON形式に厳密に従ってください。
+- 以下のJSON形式以外の文章は一切出力しないでください。
+[
+    {"id": "元のテキストのID", "translation": "翻訳されたテキスト"}
+]
+入力テキスト: ${JSON.stringify(textObjects)}`;
+
+          const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [{ role: 'user', content: prompt }],
+              max_tokens: 4096
+            })
+          });
+          const data = await response.json();
+
+          if (data.error) {
+            if (data.error.type === 'overloaded_error' && currentRetry < MAX_RETRIES) {
+              currentRetry++;
+              const delay = Math.pow(2, currentRetry) * 1000;
+              await sleep(delay);
+              return tryTranslate();
+            } else {
+              throw new Error(`Anthropic API Error: ${data.error.message}`);
+            }
+          }
+
+          const responseText = data.content[0].text;
+          const jsonMatch = responseText.match(/\[\s*\{.*\}\s*\]/s);
+          if (jsonMatch) {
+            try {
+              const jsonResponse = JSON.parse(jsonMatch[0]);
+              resolve(jsonResponse);
+            } catch (parseError) {
+              if (currentRetry < MAX_RETRIES) {
+                currentRetry++;
+                const delay = Math.pow(2, currentRetry) * 1000;
+                await sleep(delay);
+                return tryTranslate();
+              } else {
+                throw new Error('Anthropic翻訳結果のJSON解析に失敗しました');
+              }
+            }
+          } else if (currentRetry < MAX_RETRIES) {
+            currentRetry++;
+            const delay = Math.pow(2, currentRetry) * 1000;
+            await sleep(delay);
+            return tryTranslate();
+          } else {
+            throw new Error('Anthropic翻訳結果からJSONを抽出できませんでした');
+          }
+        } catch (error) {
+          if (currentRetry < MAX_RETRIES) {
+            currentRetry++;
+            const delay = Math.pow(2, currentRetry) * 1000;
+            await sleep(delay);
+            return tryTranslate();
+          } else {
+            reject(error);
+          }
+        }
+      };
+      tryTranslate();
+    });
+  });
+}
+
+// xAI APIでの翻訳処理
+async function translateWithXAI(textItems, targetLanguage) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(['xaiApiKey', 'xaiModel'], async function(items) {
+      const apiKey = items.xaiApiKey;
+      let model = (items.xaiModel || '').trim() || 'grok-2-1212';
+      if (!apiKey) {
+        reject(new Error('xAI APIキーが設定されていません'));
+        return;
+      }
+      const MAX_RETRIES = 5;
+      let currentRetry = 0;
+
+      const tryTranslate = async () => {
+        try {
+          const textObjects = textItems.map(it => ({ id: it.id, text: it.text }));
+          const prompt = `あなたはプロの翻訳家です。以下のJSON配列内の各オブジェクトについて、"text"フィールドの内容を文脈に沿って${getLanguageName(targetLanguage)}に翻訳してください。各オブジェクトは一意な"id"フィールドを持っており、出力時にもその"id"を必ず維持してください。
+【注意点】
+- 固有名詞、プログラムコード、数値の単位など、翻訳するのに相応しくないと考えられるものはそのままにしてください。
+- 翻訳結果は文脈に沿った自然な表現にしてください。
+- 出力は以下のJSON形式に厳密に従ってください。
+- 以下のJSON形式以外の文章は一切出力しないでください。
+[
+    {"id": "元のテキストのID", "translation": "翻訳されたテキスト"}
+]
+入力テキスト: ${JSON.stringify(textObjects)}`;
+
+          const response = await fetch('https://api.xai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.1,
+              max_tokens: 4096
+            })
+          });
+          const data = await response.json();
+
+          if (data.error) {
+            if (data.error.code === 429 && currentRetry < MAX_RETRIES) {
+              currentRetry++;
+              const delay = Math.pow(2, currentRetry) * 1000;
+              await sleep(delay);
+              return tryTranslate();
+            } else {
+              throw new Error(`xAI API Error: ${data.error.message}`);
+            }
+          }
+
+          const responseText = data.choices[0].message.content;
+          const jsonMatch = responseText.match(/\[\s*\{.*\}\s*\]/s);
+          if (jsonMatch) {
+            try {
+              const jsonResponse = JSON.parse(jsonMatch[0]);
+              resolve(jsonResponse);
+            } catch (parseError) {
+              if (currentRetry < MAX_RETRIES) {
+                currentRetry++;
+                const delay = Math.pow(2, currentRetry) * 1000;
+                await sleep(delay);
+                return tryTranslate();
+              } else {
+                throw new Error('xAI翻訳結果のJSON解析に失敗しました');
+              }
+            }
+          } else if (currentRetry < MAX_RETRIES) {
+            currentRetry++;
+            const delay = Math.pow(2, currentRetry) * 1000;
+            await sleep(delay);
+            return tryTranslate();
+          } else {
+            throw new Error('xAI翻訳結果からJSONを抽出できませんでした');
           }
         } catch (error) {
           if (currentRetry < MAX_RETRIES) {

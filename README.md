@@ -9,8 +9,8 @@
   - Translates text by replacing the content within the page.
 - 多言語対応（英語、日本語、フランス語、など）
   - Supports multiple languages (e.g., English, Japanese, French, etc.).
-- 使用可能なAPI Gemini, OpenAI, DeepSeek
-  - Supports Gemini, OpenAI, and DeepSeek APIs
+- 使用可能なAPI: Gemini API, OpenAI API, DeepSeek API, Anthropic API, xAI API
+  - Supports: Gemini API, OpenAI API, DeepSeek API, Anthropic API, xAI API
 
 ## Installation Instructions
 
@@ -34,5 +34,5 @@ This extension can also be installed directly from the Chrome Web Store using th
 
 ## License
 
-このプロジェクトは MIT ライセンスの下で公開されています。詳細は [LICENSE](LICENSE) ファイルをご参照ください。
-This project is released under the MIT License. Please refer to the [LICENSE](LICENSE) file for details.
+- このプロジェクトは MIT ライセンスの下で公開されています。詳細は [LICENSE](LICENSE) ファイルをご参照ください。
+  - This project is released under the MIT License. Please refer to the [LICENSE](LICENSE) file for details.

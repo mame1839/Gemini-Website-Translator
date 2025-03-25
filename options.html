@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html>
-
 <head>
   <meta charset="utf-8">
   <title id="pageTitle">LLM Website Translator Settings</title>
   <link rel="stylesheet" href="options.css">
 </head>
-
 <body>
   <div class="container">
     <h1 id="header">LLM Website Translator Settings</h1>
@@ -17,6 +15,8 @@
         <option value="gemini" selected>Gemini</option>
         <option value="openai">OpenAI</option>
         <option value="deepseek">DeepSeek</option>
+        <option value="anthropic">Anthropic</option>
+        <option value="xai">xAI</option>
       </select>
       <p class="help-text" id="apiProviderHelp">Choose the API provider to use for translation.</p>
     </div>
@@ -26,6 +26,8 @@
       <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key" style="display: block;">
       <input type="password" id="openaiApiKey" placeholder="Enter your OpenAI API key" style="display: none;">
       <input type="password" id="deepseekApiKey" placeholder="Enter your DeepSeek API key" style="display: none;">
+      <input type="password" id="anthropicApiKey" placeholder="Enter your Anthropic API key" style="display: none;">
+      <input type="password" id="xaiApiKey" placeholder="Enter your xAI API key" style="display: none;">
       <p class="help-text" id="apiKeyHelp"></p>
     </div>
 
@@ -102,8 +104,6 @@
     <div class="form-group">
       <label id="excludeListLabel" for="excludeList">List of Sites to Exclude:</label>
       <textarea id="excludeList" rows="5" placeholder="https://example.com&#10;https://www.example.org"></textarea>
-
-
       <p class="help-text" id="excludeListHelp">
         Enter each URL on a new line. Sites listed here will not be automatically translated.
       </p>
@@ -114,5 +114,4 @@
   </div>
   <script src="options.js"></script>
 </body>
-
 </html>

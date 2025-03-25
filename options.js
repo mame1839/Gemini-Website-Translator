@@ -1,7 +1,9 @@
+// options.js
+
 document.addEventListener('DOMContentLoaded', function() {
   chrome.storage.local.get([
-    'targetLanguage', 'apiProvider', 'geminiApiKey', 'openaiApiKey', 'deepseekApiKey',
-    'geminiModel', 'openaiModel', 'deepseekModel',
+    'targetLanguage', 'apiProvider', 'geminiApiKey', 'openaiApiKey', 'deepseekApiKey', 'anthropicApiKey', 'xaiApiKey',
+    'geminiModel', 'openaiModel', 'deepseekModel', 'anthropicModel', 'xaiModel',
     'batchSize', 'maxBatchLength', 'delayBetweenRequests', 'toggleBlueBackground',
     'realTimeTranslation', 'showProgressPopup', 'excludeList'
   ], function(items) {
@@ -12,6 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('geminiApiKey').value = items.geminiApiKey || '';
     document.getElementById('openaiApiKey').value = items.openaiApiKey || '';
     document.getElementById('deepseekApiKey').value = items.deepseekApiKey || '';
+    document.getElementById('anthropicApiKey').value = items.anthropicApiKey || '';
+    document.getElementById('xaiApiKey').value = items.xaiApiKey || '';
     document.getElementById('targetLanguage').value = items.targetLanguage || 'en';
     document.getElementById('batchSize').value = (typeof items.batchSize === 'undefined' || items.batchSize == 20) ? 80 : items.batchSize;
     document.getElementById('maxBatchLength').value = (typeof items.maxBatchLength === 'undefined' || items.maxBatchLength == 4000) ? 5000 : items.maxBatchLength;
@@ -32,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const provider = this.value;
     const lang = document.getElementById('targetLanguage').value || 'en';
     updateApiFields(provider, lang);
-    // AIモデルの値を更新
     chrome.storage.local.get([provider + 'Model'], function(items) {
       document.getElementById('aiModel').value = items[provider + 'Model'] || '';
     });
@@ -50,6 +53,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const geminiApiKey = document.getElementById('geminiApiKey').value.trim();
     const openaiApiKey = document.getElementById('openaiApiKey').value.trim();
     const deepseekApiKey = document.getElementById('deepseekApiKey').value.trim();
+    const anthropicApiKey = document.getElementById('anthropicApiKey').value.trim();
+    const xaiApiKey = document.getElementById('xaiApiKey').value.trim();
     const aiModel = document.getElementById('aiModel').value.trim();
     const targetLanguage = document.getElementById('targetLanguage').value;
     const batchSize = parseInt(document.getElementById('batchSize').value, 10) || 80;
@@ -63,13 +68,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const lang = targetLanguage || 'en';
     const translations = optionsTranslations[lang] || optionsTranslations.en;
 
-    // APIプロバイダーごとにAIモデルを保存
     const modelKey = apiProvider + 'Model';
     const saveData = {
       apiProvider: apiProvider,
       geminiApiKey: geminiApiKey,
       openaiApiKey: openaiApiKey,
       deepseekApiKey: deepseekApiKey,
+      anthropicApiKey: anthropicApiKey,
+      xaiApiKey: xaiApiKey,
       [modelKey]: aiModel,
       targetLanguage: targetLanguage,
       batchSize: batchSize,
@@ -93,27 +99,34 @@ function updateApiFields(provider, lang) {
   const apiKeyHelp = {
     gemini: tr.apiKeyHelpGemini || 'Get your API key from <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
     openai: tr.apiKeyHelpOpenAI || 'Get your API key from <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
-    deepseek: tr.apiKeyHelpDeepSeek || 'Get your API key from <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.'
+    deepseek: tr.apiKeyHelpDeepSeek || 'Get your API key from <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    anthropic: tr.apiKeyHelpAnthropic || 'Get your API key from <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>.',
+    xai: tr.apiKeyHelpXAI || 'Get your API key from <a href="https://xai.com/" target="_blank">xAI</a>.'
   };
   const aiModelHelp = {
     gemini: tr.aiModelHelpGemini || 'If left blank, gemini-2.0-flash-lite will be used.',
     openai: tr.aiModelHelpOpenAI || 'If left blank, gpt-4o-mini will be used.',
-    deepseek: tr.aiModelHelpDeepSeek || 'If left blank, deepseek-chat will be used.'
+    deepseek: tr.aiModelHelpDeepSeek || 'If left blank, deepseek-chat will be used.',
+    anthropic: tr.aiModelHelpAnthropic || 'If left blank, claude-3-5-haiku-20241022 will be used.',
+    xai: tr.aiModelHelpXAI || 'If left blank, grok-2-1212 will be used.'
   };
   const aiModelPlaceholder = {
     gemini: tr.aiModelPlaceholderGemini || 'e.g., gemini-2.0-flash-lite',
     openai: tr.aiModelPlaceholderOpenAI || 'e.g., gpt-4o-mini',
-    deepseek: tr.aiModelPlaceholderDeepSeek || 'e.g., deepseek-chat'
+    deepseek: tr.aiModelPlaceholderDeepSeek || 'e.g., deepseek-chat',
+    anthropic: tr.aiModelPlaceholderAnthropic || 'e.g., claude-3-5-haiku-20241022',
+    xai: tr.aiModelPlaceholderXAI || 'e.g., grok-2-1212'
   };
 
   document.getElementById('apiKeyHelp').innerHTML = apiKeyHelp[provider];
   document.getElementById('aiModelHelp').textContent = aiModelHelp[provider];
   document.getElementById('aiModel').placeholder = aiModelPlaceholder[provider];
 
-  // APIキー入力欄の表示切り替え
   document.getElementById('geminiApiKey').style.display = provider === 'gemini' ? 'block' : 'none';
   document.getElementById('openaiApiKey').style.display = provider === 'openai' ? 'block' : 'none';
   document.getElementById('deepseekApiKey').style.display = provider === 'deepseek' ? 'block' : 'none';
+  document.getElementById('anthropicApiKey').style.display = provider === 'anthropic' ? 'block' : 'none';
+  document.getElementById('xaiApiKey').style.display = provider === 'xai' ? 'block' : 'none';
 }
 
 function updateUITranslations(lang) {
@@ -128,9 +141,10 @@ function updateUITranslations(lang) {
   document.getElementById('geminiApiKey').placeholder = tr.apiKeyPlaceholderGemini || 'Enter your Gemini API key';
   document.getElementById('openaiApiKey').placeholder = tr.apiKeyPlaceholderOpenAI || 'Enter your OpenAI API key';
   document.getElementById('deepseekApiKey').placeholder = tr.apiKeyPlaceholderDeepSeek || 'Enter your DeepSeek API key';
+  document.getElementById('anthropicApiKey').placeholder = tr.apiKeyPlaceholderAnthropic || 'Enter your Anthropic API key';
+  document.getElementById('xaiApiKey').placeholder = tr.apiKeyPlaceholderXAI || 'Enter your xAI API key';
 
   document.getElementById('aiModelLabel').textContent = tr.aiModelLabel || 'AI Model:';
-
 
   document.getElementById('batchSizeLabel').textContent = tr.batchSizeLabel || 'Batch Size (Number of Texts):';
   document.getElementById('batchSizeHelp').textContent = tr.batchSizeHelp || '';
@@ -168,17 +182,6 @@ function showStatus(message, type) {
   }, 3000);
 }
 
-function showStatus(message, type) {
-  const status = document.getElementById('status');
-  status.textContent = message;
-  status.className = type;
-  status.style.display = 'block';
-  setTimeout(function() {
-    status.style.display = 'none';
-    status.className = '';
-  }, 3000);
-}
-
 const optionsTranslations = {
   en: {
     pageTitle: 'LLM Website Translator Settings',
@@ -189,16 +192,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: 'Get your API key from <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
     apiKeyHelpOpenAI: 'Get your API key from <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
     apiKeyHelpDeepSeek: 'Get your API key from <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyHelpAnthropic: 'Get your API key from <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>.',
+    apiKeyHelpXAI: 'Get your API key from <a href="https://xai.com/" target="_blank">xAI</a>.',
     apiKeyPlaceholderGemini: 'Enter your Gemini API key',
     apiKeyPlaceholderOpenAI: 'Enter your OpenAI API key',
     apiKeyPlaceholderDeepSeek: 'Enter your DeepSeek API key',
+    apiKeyPlaceholderAnthropic: 'Enter your Anthropic API key',
+    apiKeyPlaceholderXAI: 'Enter your xAI API key',
     aiModelLabel: 'AI Model:',
     aiModelHelpGemini: 'If left blank, gemini-2.0-flash-lite will be used.',
     aiModelHelpOpenAI: 'If left blank, gpt-4o-mini will be used.',
     aiModelHelpDeepSeek: 'If left blank, deepseek-chat will be used.',
+    aiModelHelpAnthropic: 'If left blank, claude-3-5-haiku-20241022 will be used.',
+    aiModelHelpXAI: 'If left blank, grok-2-1212 will be used.',
     aiModelPlaceholderGemini: 'e.g., gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: 'e.g., gpt-4o-mini',
     aiModelPlaceholderDeepSeek: 'e.g., deepseek-chat',
+    aiModelPlaceholderAnthropic: 'e.g., claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: 'e.g., grok-2-1212',
     batchSizeLabel: 'Batch Size (Number of Texts):',
     batchSizeHelp: 'Number of texts to translate at once. Higher is more efficient, but too many may cause errors.',
     maxBatchLengthLabel: 'Max Batch Length (Characters):',
@@ -225,16 +236,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: '<a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>からAPIキーを取得してください。',
     apiKeyHelpOpenAI: '<a href="https://platform.openai.com/" target="_blank">OpenAI</a>からAPIキーを取得してください。',
     apiKeyHelpDeepSeek: '<a href="https://deepseek.com/" target="_blank">DeepSeek</a>からAPIキーを取得してください。',
+    apiKeyHelpAnthropic: '<a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>からAPIキーを取得してください。',
+    apiKeyHelpXAI: '<a href="https://xai.com/" target="_blank">xAI</a>からAPIキーを取得してください。',
     apiKeyPlaceholderGemini: 'Gemini APIキーを入力してください',
     apiKeyPlaceholderOpenAI: 'OpenAI APIキーを入力してください',
     apiKeyPlaceholderDeepSeek: 'DeepSeek APIキーを入力してください',
+    apiKeyPlaceholderAnthropic: 'Anthropic APIキーを入力してください',
+    apiKeyPlaceholderXAI: 'xAI APIキーを入力してください',
     aiModelLabel: 'AIモデル:',
     aiModelHelpGemini: '空白の場合、gemini-2.0-flash-liteが使用されます。',
     aiModelHelpOpenAI: '空白の場合、gpt-4o-miniが使用されます。',
     aiModelHelpDeepSeek: '空白の場合、deepseek-chatが使用されます。',
+    aiModelHelpAnthropic: '空白の場合、claude-3-5-haiku-20241022が使用されます。',
+    aiModelHelpXAI: '空白の場合、grok-2-1212が使用されます。',
     aiModelPlaceholderGemini: '例: gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: '例: gpt-4o-mini',
     aiModelPlaceholderDeepSeek: '例: deepseek-chat',
+    aiModelPlaceholderAnthropic: '例: claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: '例: grok-2-1212',
     batchSizeLabel: 'バッチサイズ (テキスト数):',
     batchSizeHelp: '一度に翻訳するテキストの数。多いほど効率的ですが、あまり多すぎるとエラーになる可能性があります。',
     maxBatchLengthLabel: '最大バッチ長 (文字数):',
@@ -261,16 +280,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: 'Obtenez votre clé API sur <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
     apiKeyHelpOpenAI: 'Obtenez votre clé API sur <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
     apiKeyHelpDeepSeek: 'Obtenez votre clé API sur <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyHelpAnthropic: 'Obtenez votre clé API sur <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>.',
+    apiKeyHelpXAI: 'Obtenez votre clé API sur <a href="https://xai.com/" target="_blank">xAI</a>.',
     apiKeyPlaceholderGemini: 'Entrez votre clé API Gemini',
     apiKeyPlaceholderOpenAI: 'Entrez votre clé API OpenAI',
     apiKeyPlaceholderDeepSeek: 'Entrez votre clé API DeepSeek',
+    apiKeyPlaceholderAnthropic: 'Entrez votre clé API Anthropic',
+    apiKeyPlaceholderXAI: 'Entrez votre clé API xAI',
     aiModelLabel: 'Modèle AI :',
     aiModelHelpGemini: 'Si vide, gemini-2.0-flash-lite sera utilisé.',
     aiModelHelpOpenAI: 'Si vide, gpt-4o-mini sera utilisé.',
     aiModelHelpDeepSeek: 'Si vide, deepseek-chat sera utilisé.',
+    aiModelHelpAnthropic: 'Si vide, claude-3-5-haiku-20241022 sera utilisé.',
+    aiModelHelpXAI: 'Si vide, grok-2-1212 sera utilisé.',
     aiModelPlaceholderGemini: 'ex. : gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: 'ex. : gpt-4o-mini',
     aiModelPlaceholderDeepSeek: 'ex. : deepseek-chat',
+    aiModelPlaceholderAnthropic: 'ex. : claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: 'ex. : grok-2-1212',
     batchSizeLabel: 'Taille du lot (nombre de textes) :',
     batchSizeHelp: 'Nombre de textes à traduire en une fois. Plus élevé est plus efficace, mais trop peut causer des erreurs.',
     maxBatchLengthLabel: 'Longueur maximale du lot (caractères) :',
@@ -297,16 +324,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
     apiKeyHelpOpenAI: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
     apiKeyHelpDeepSeek: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyHelpAnthropic: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>.',
+    apiKeyHelpXAI: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://xai.com/" target="_blank">xAI</a>.',
     apiKeyPlaceholderGemini: 'Geben Sie Ihren Gemini API-Schlüssel ein',
     apiKeyPlaceholderOpenAI: 'Geben Sie Ihren OpenAI API-Schlüssel ein',
     apiKeyPlaceholderDeepSeek: 'Geben Sie Ihren DeepSeek API-Schlüssel ein',
+    apiKeyPlaceholderAnthropic: 'Geben Sie Ihren Anthropic API-Schlüssel ein',
+    apiKeyPlaceholderXAI: 'Geben Sie Ihren xAI API-Schlüssel ein',
     aiModelLabel: 'KI-Modell:',
     aiModelHelpGemini: 'Wenn leer, wird gemini-2.0-flash-lite verwendet.',
     aiModelHelpOpenAI: 'Wenn leer, wird gpt-4o-mini verwendet.',
     aiModelHelpDeepSeek: 'Wenn leer, wird deepseek-chat verwendet.',
+    aiModelHelpAnthropic: 'Wenn leer, wird claude-3-5-haiku-20241022 verwendet.',
+    aiModelHelpXAI: 'Wenn leer, wird grok-2-1212 verwendet.',
     aiModelPlaceholderGemini: 'z.B. gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: 'z.B. gpt-4o-mini',
     aiModelPlaceholderDeepSeek: 'z.B. deepseek-chat',
+    aiModelPlaceholderAnthropic: 'z.B. claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: 'z.B. grok-2-1212',
     batchSizeLabel: 'Batch-Größe (Anzahl der Texte):',
     batchSizeHelp: 'Anzahl der Texte, die gleichzeitig übersetzt werden. Höher ist effizienter, aber zu viele können Fehler verursachen.',
     maxBatchLengthLabel: 'Maximale Batch-Länge (Zeichen):',
@@ -333,16 +368,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: 'Obtenga su clave API en <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
     apiKeyHelpOpenAI: 'Obtenga su clave API en <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
     apiKeyHelpDeepSeek: 'Obtenga su clave API en <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyHelpAnthropic: 'Obtenga su clave API en <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>.',
+    apiKeyHelpXAI: 'Obtenga su clave API en <a href="https://xai.com/" target="_blank">xAI</a>.',
     apiKeyPlaceholderGemini: 'Ingrese su clave API de Gemini',
     apiKeyPlaceholderOpenAI: 'Ingrese su clave API de OpenAI',
     apiKeyPlaceholderDeepSeek: 'Ingrese su clave API de DeepSeek',
+    apiKeyPlaceholderAnthropic: 'Ingrese su clave API de Anthropic',
+    apiKeyPlaceholderXAI: 'Ingrese su clave API de xAI',
     aiModelLabel: 'Modelo de IA:',
     aiModelHelpGemini: 'Si se deja en blanco, se usará gemini-2.0-flash-lite.',
     aiModelHelpOpenAI: 'Si se deja en blanco, se usará gpt-4o-mini.',
     aiModelHelpDeepSeek: 'Si se deja en blanco, se usará deepseek-chat.',
+    aiModelHelpAnthropic: 'Si se deja en blanco, se usará claude-3-5-haiku-20241022.',
+    aiModelHelpXAI: 'Si se deja en blanco, se usará grok-2-1212.',
     aiModelPlaceholderGemini: 'ejemplo: gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: 'ejemplo: gpt-4o-mini',
     aiModelPlaceholderDeepSeek: 'ejemplo: deepseek-chat',
+    aiModelPlaceholderAnthropic: 'ejemplo: claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: 'ejemplo: grok-2-1212',
     batchSizeLabel: 'Tamaño del lote (número de textos):',
     batchSizeHelp: 'Número de textos a traducir a la vez. Un valor más alto es más eficiente, pero demasiados pueden causar errores.',
     maxBatchLengthLabel: 'Longitud máxima del lote (caracteres):',
@@ -369,16 +412,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: 'Ottieni la tua chiave API da <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
     apiKeyHelpOpenAI: 'Ottieni la tua chiave API da <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
     apiKeyHelpDeepSeek: 'Ottieni la tua chiave API da <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyHelpAnthropic: 'Ottieni la tua chiave API da <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>.',
+    apiKeyHelpXAI: 'Ottieni la tua chiave API da <a href="https://xai.com/" target="_blank">xAI</a>.',
     apiKeyPlaceholderGemini: 'Inserisci la tua chiave API Gemini',
     apiKeyPlaceholderOpenAI: 'Inserisci la tua chiave API OpenAI',
     apiKeyPlaceholderDeepSeek: 'Inserisci la tua chiave API DeepSeek',
+    apiKeyPlaceholderAnthropic: 'Inserisci la tua chiave API Anthropic',
+    apiKeyPlaceholderXAI: 'Inserisci la tua chiave API xAI',
     aiModelLabel: 'Modello AI:',
     aiModelHelpGemini: 'Se lasciato vuoto, verrà utilizzato gemini-2.0-flash-lite.',
     aiModelHelpOpenAI: 'Se lasciato vuoto, verrà utilizzato gpt-4o-mini.',
     aiModelHelpDeepSeek: 'Se lasciato vuoto, verrà utilizzato deepseek-chat.',
+    aiModelHelpAnthropic: 'Se lasciato vuoto, verrà utilizzato claude-3-5-haiku-20241022.',
+    aiModelHelpXAI: 'Se lasciato vuoto, verrà utilizzato grok-2-1212.',
     aiModelPlaceholderGemini: 'es. gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: 'es. gpt-4o-mini',
     aiModelPlaceholderDeepSeek: 'es. deepseek-chat',
+    aiModelPlaceholderAnthropic: 'es. claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: 'es. grok-2-1212',
     batchSizeLabel: 'Dimensione del lotto (numero di testi):',
     batchSizeHelp: 'Numero di testi da tradurre contemporaneamente. Valori più alti sono più efficienti, ma troppi possono causare errori.',
     maxBatchLengthLabel: 'Lunghezza massima del lotto (caratteri):',
@@ -405,16 +456,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: 'Obtenha sua chave API no <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
     apiKeyHelpOpenAI: 'Obtenha sua chave API no <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
     apiKeyHelpDeepSeek: 'Obtenha sua chave API no <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyHelpAnthropic: 'Obtenha sua chave API no <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>.',
+    apiKeyHelpXAI: 'Obtenha sua chave API no <a href="https://xai.com/" target="_blank">xAI</a>.',
     apiKeyPlaceholderGemini: 'Digite sua chave API do Gemini',
     apiKeyPlaceholderOpenAI: 'Digite sua chave API do OpenAI',
     apiKeyPlaceholderDeepSeek: 'Digite sua chave API do DeepSeek',
+    apiKeyPlaceholderAnthropic: 'Digite sua chave API do Anthropic',
+    apiKeyPlaceholderXAI: 'Digite sua chave API do xAI',
     aiModelLabel: 'Modelo de IA:',
     aiModelHelpGemini: 'Se deixado em branco, gemini-2.0-flash-lite será usado.',
     aiModelHelpOpenAI: 'Se deixado em branco, gpt-4o-mini será usado.',
     aiModelHelpDeepSeek: 'Se deixado em branco, deepseek-chat será usado.',
+    aiModelHelpAnthropic: 'Se deixado em branco, claude-3-5-haiku-20241022 será usado.',
+    aiModelHelpXAI: 'Se deixado em branco, grok-2-1212 será usado.',
     aiModelPlaceholderGemini: 'ex.: gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: 'ex.: gpt-4o-mini',
     aiModelPlaceholderDeepSeek: 'ex.: deepseek-chat',
+    aiModelPlaceholderAnthropic: 'ex.: claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: 'ex.: grok-2-1212',
     batchSizeLabel: 'Tamanho do lote (número de textos):',
     batchSizeHelp: 'Número de textos a traduzir de uma vez. Valores mais altos são mais eficientes, mas muitos podem causar erros.',
     maxBatchLengthLabel: 'Comprimento máximo do lote (caracteres):',
@@ -441,16 +500,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: 'Получите ваш API-ключ на <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>.',
     apiKeyHelpOpenAI: 'Получите ваш API-ключ на <a href="https://platform.openai.com/" target="_blank">OpenAI</a>.',
     apiKeyHelpDeepSeek: 'Получите ваш API-ключ на <a href="https://deepseek.com/" target="_blank">DeepSeek</a>.',
+    apiKeyHelpAnthropic: 'Получите ваш API-ключ на <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>.',
+    apiKeyHelpXAI: 'Получите ваш API-ключ на <a href="https://xai.com/" target="_blank">xAI</a>.',
     apiKeyPlaceholderGemini: 'Введите ваш API-ключ Gemini',
     apiKeyPlaceholderOpenAI: 'Введите ваш API-ключ OpenAI',
     apiKeyPlaceholderDeepSeek: 'Введите ваш API-ключ DeepSeek',
+    apiKeyPlaceholderAnthropic: 'Введите ваш API-ключ Anthropic',
+    apiKeyPlaceholderXAI: 'Введите ваш API-ключ xAI',
     aiModelLabel: 'Модель ИИ:',
     aiModelHelpGemini: 'Если оставить пустым, будет использоваться gemini-2.0-flash-lite.',
     aiModelHelpOpenAI: 'Если оставить пустым, будет использоваться gpt-4o-mini.',
     aiModelHelpDeepSeek: 'Если оставить пустым, будет использоваться deepseek-chat.',
+    aiModelHelpAnthropic: 'Если оставить пустым, будет использоваться claude-3-5-haiku-20241022.',
+    aiModelHelpXAI: 'Если оставить пустым, будет использоваться grok-2-1212.',
     aiModelPlaceholderGemini: 'напр., gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: 'напр., gpt-4o-mini',
     aiModelPlaceholderDeepSeek: 'напр., deepseek-chat',
+    aiModelPlaceholderAnthropic: 'напр., claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: 'напр., grok-2-1212',
     batchSizeLabel: 'Размер партии (количество текстов):',
     batchSizeHelp: 'Количество текстов для перевода за один раз. Более высокие значения более эффективны, но слишком много может вызвать ошибки.',
     maxBatchLengthLabel: 'Максимальная длина партии (символы):',
@@ -477,16 +544,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: '从 <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a> 获取您的 API 密钥。',
     apiKeyHelpOpenAI: '从 <a href="https://platform.openai.com/" target="_blank">OpenAI</a> 获取您的 API 密钥。',
     apiKeyHelpDeepSeek: '从 <a href="https://deepseek.com/" target="_blank">DeepSeek</a> 获取您的 API 密钥。',
+    apiKeyHelpAnthropic: '从 <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a> 获取您的 API 密钥。',
+    apiKeyHelpXAI: '从 <a href="https://xai.com/" target="_blank">xAI</a> 获取您的 API 密钥。',
     apiKeyPlaceholderGemini: '输入您的 Gemini API 密钥',
     apiKeyPlaceholderOpenAI: '输入您的 OpenAI API 密钥',
     apiKeyPlaceholderDeepSeek: '输入您的 DeepSeek API 密钥',
+    apiKeyPlaceholderAnthropic: '输入您的 Anthropic API 密钥',
+    apiKeyPlaceholderXAI: '输入您的 xAI API 密钥',
     aiModelLabel: 'AI 模型:',
     aiModelHelpGemini: '如果留空，将使用 gemini-2.0-flash-lite。',
     aiModelHelpOpenAI: '如果留空，将使用 gpt-4o-mini。',
     aiModelHelpDeepSeek: '如果留空，将使用 deepseek-chat。',
+    aiModelHelpAnthropic: '如果留空，将使用 claude-3-5-haiku-20241022。',
+    aiModelHelpXAI: '如果留空，将使用 grok-2-1212。',
     aiModelPlaceholderGemini: '例如：gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: '例如：gpt-4o-mini',
     aiModelPlaceholderDeepSeek: '例如：deepseek-chat',
+    aiModelPlaceholderAnthropic: '例如：claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: '例如：grok-2-1212',
     batchSizeLabel: '批处理大小 (文本数量):',
     batchSizeHelp: '一次翻译的文本数量。数值越高效率越高，但过多可能导致错误。',
     maxBatchLengthLabel: '批处理最大长度 (字符数):',
@@ -513,16 +588,24 @@ const optionsTranslations = {
     apiKeyHelpGemini: '<a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>에서 API 키를 받으세요.',
     apiKeyHelpOpenAI: '<a href="https://platform.openai.com/" target="_blank">OpenAI</a>에서 API 키를 받으세요.',
     apiKeyHelpDeepSeek: '<a href="https://deepseek.com/" target="_blank">DeepSeek</a>에서 API 키를 받으세요.',
+    apiKeyHelpAnthropic: '<a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>에서 API 키를 받으세요.',
+    apiKeyHelpXAI: '<a href="https://xai.com/" target="_blank">xAI</a>에서 API 키를 받으세요.',
     apiKeyPlaceholderGemini: 'Gemini API 키를 입력하세요',
     apiKeyPlaceholderOpenAI: 'OpenAI API 키를 입력하세요',
     apiKeyPlaceholderDeepSeek: 'DeepSeek API 키를 입력하세요',
+    apiKeyPlaceholderAnthropic: 'Anthropic API 키를 입력하세요',
+    apiKeyPlaceholderXAI: 'xAI API 키를 입력하세요',
     aiModelLabel: 'AI 모델:',
     aiModelHelpGemini: '비워두면 gemini-2.0-flash-lite가 사용됩니다.',
     aiModelHelpOpenAI: '비워두면 gpt-4o-mini가 사용됩니다.',
     aiModelHelpDeepSeek: '비워두면 deepseek-chat가 사용됩니다.',
+    aiModelHelpAnthropic: '비워두면 claude-3-5-haiku-20241022가 사용됩니다.',
+    aiModelHelpXAI: '비워두면 grok-2-1212가 사용됩니다.',
     aiModelPlaceholderGemini: '예: gemini-2.0-flash-lite',
     aiModelPlaceholderOpenAI: '예: gpt-4o-mini',
     aiModelPlaceholderDeepSeek: '예: deepseek-chat',
+    aiModelPlaceholderAnthropic: '예: claude-3-5-haiku-20241022',
+    aiModelPlaceholderXAI: '예: grok-2-1212',
     batchSizeLabel: '배치 크기 (텍스트 수):',
     batchSizeHelp: '한 번에 번역할 텍스트의 수. 숫자가 클수록 효율적이지만, 너무 많으면 오류가 발생할 수 있습니다.',
     maxBatchLengthLabel: '최대 배치 길이 (문자 수):',
