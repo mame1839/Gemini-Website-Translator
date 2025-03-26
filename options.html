@@ -2,27 +2,41 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title id="pageTitle">Gemini Website Translator Settings</title>
+  <title id="pageTitle">LLM Website Translator Settings</title>
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <div class="container">
-    <h1 id="header">Gemini Website Translator Settings</h1>
-    
+    <h1 id="header">LLM Website Translator Settings</h1>
+
     <div class="form-group">
-      <label id="apiKeyLabel" for="apiKey">Gemini API Key:</label>
-      <input type="password" id="apiKey" placeholder="Enter your API key">
-      <p class="help-text" id="apiKeyHelp">
-        <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a> is where you can get your API key.
-      </p>
+      <label id="apiProviderLabel" for="apiProvider">API Provider:</label>
+      <select id="apiProvider">
+        <option value="gemini" selected>Gemini</option>
+        <option value="openai">OpenAI</option>
+        <option value="deepseek">DeepSeek</option>
+        <option value="anthropic">Anthropic</option>
+        <option value="xai">xAI</option>
+      </select>
+      <p class="help-text" id="apiProviderHelp">Choose the API provider to use for translation.</p>
     </div>
-    
-    <div class="form-group">
+
+    <div class="form-group" id="apiKeyGroup">
+      <label id="apiKeyLabel" for="apiKey">API Key:</label>
+      <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key" style="display: block;">
+      <input type="password" id="openaiApiKey" placeholder="Enter your OpenAI API key" style="display: none;">
+      <input type="password" id="deepseekApiKey" placeholder="Enter your DeepSeek API key" style="display: none;">
+      <input type="password" id="anthropicApiKey" placeholder="Enter your Anthropic API key" style="display: none;">
+      <input type="password" id="xaiApiKey" placeholder="Enter your xAI API key" style="display: none;">
+      <p class="help-text" id="apiKeyHelp"></p>
+    </div>
+
+    <div class="form-group" id="aiModelGroup">
       <label id="aiModelLabel" for="aiModel">AI Model:</label>
       <input type="text" id="aiModel" placeholder="e.g., gemini-2.0-flash-lite">
-      <p class="help-text" id="aiModelHelp">If left blank, gemini-2.0-flash-lite will be used.</p>
+      <p class="help-text" id="aiModelHelp"></p>
     </div>
-    
+
     <div class="form-group">
       <label for="targetLanguage">Language:</label>
       <select id="targetLanguage">
@@ -36,33 +50,44 @@
         <option value="ru">Русский</option>
         <option value="zh">中文</option>
         <option value="ko">한국어</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+        <option value="bn">বাংলা</option>
+        <option value="id">Bahasa Indonesia</option>
+        <option value="tr">Türkçe</option>
       </select>
     </div>
-    
+
     <div class="form-group">
       <label id="batchSizeLabel" for="batchSize">Batch Size (Number of Texts):</label>
-      <input type="number" id="batchSize" min="5" max="50" value="80">
+      <input type="number" id="batchSize" min="5" max="1000" value="80">
       <p class="help-text" id="batchSizeHelp">
         Number of texts to translate at once. Higher is more efficient, but too many may cause errors.
       </p>
     </div>
-    
+
     <div class="form-group">
       <label id="maxBatchLengthLabel" for="maxBatchLength">Max Batch Length (Characters):</label>
-      <input type="number" id="maxBatchLength" min="1000" max="10000" value="5000">
+      <input type="number" id="maxBatchLength" min="1000" max="100000" value="5000">
       <p class="help-text" id="maxBatchLengthHelp">
         Maximum total characters in a batch. If exceeded, the batch will be split.
       </p>
     </div>
-    
+
     <div class="form-group">
       <label id="delayBetweenRequestsLabel" for="delayBetweenRequests">Delay Between Requests (ms):</label>
-      <input type="number" id="delayBetweenRequests" min="500" max="5000" value="2500">
+      <input type="number" id="delayBetweenRequests" min="10" max="99999999" value="2500">
       <p class="help-text" id="delayBetweenRequestsHelp">
         Waiting time between API calls. Longer delays can help avoid rate limit errors.
       </p>
     </div>
-    
+
+    <div class="form-group">
+      <label id="maxTokenLabel" for="maxToken">Max Token:</label>
+      <input type="number" id="maxToken" min="1" max="9999999" value="8192">
+      <p class="help-text" id="maxTokenHelp">Maximum number of tokens for API requests.</p>
+    </div>
+
     <div class="form-group">
       <label id="toggleBlueBackgroundLabel" for="toggleBlueBackground">Translated Text Blue Background:</label>
       <input type="checkbox" id="toggleBlueBackground">
@@ -70,7 +95,7 @@
         Toggle whether to apply a blue background color to translated text (default is off).
       </p>
     </div>
-    
+
     <div class="form-group">
       <label id="autoTranslationLabel" for="realTimeTranslation">Automatic Translation:</label>
       <input type="checkbox" id="realTimeTranslation">
@@ -86,15 +111,16 @@
         Toggle whether to display a popup showing translation progress (default is on).
       </p>
     </div>
-    
+
     <div class="form-group">
       <label id="excludeListLabel" for="excludeList">List of Sites to Exclude:</label>
-      <textarea id="excludeList" rows="5" placeholder="https://example.com&#10;https://www.example.org"></textarea>
+      <textarea id="excludeList" rows="5" placeholder="https://example.com
+https://www.example.org"></textarea>
       <p class="help-text" id="excludeListHelp">
         Enter each URL on a new line. Sites listed here will not be automatically translated.
       </p>
     </div>
-    
+
     <button id="saveBtn">Save Settings</button>
     <div id="status"></div>
   </div>

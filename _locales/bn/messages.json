@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "এলএলএম ওয়েবসাইট অনুবাদক",
+    "description": "The name of the application"
+  },
+  "appDescription": {
+    "message": "একটি ক্রোম এক্সটেনশন যা এলএলএম এপিআই ব্যবহার করে ওয়েবসাইটের পাঠ্য প্রতিস্থাপন করে অনুবাদ করে। জেমিনি এপিআই, ওপেনএআই এপিআই, ডিপসিক এপিআই, অ্যানথ্রপিক এপিআই এবং এক্সএআই এপিআই সমর্থন করে।",
+    "description": "The description of the application"
+  }
+}

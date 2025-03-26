@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "LLM 网站翻译器",
+    "description": "The name of the application"
+  },
+  "appDescription": {
+    "message": "一款 Chrome 扩展程序，通过替换网站文本进行翻译，使用 LLM API。支持 Gemini API、OpenAI API、DeepSeek API、Anthropic API 和 xAI API。",
+    "description": "The description of the application"
+  }
+}

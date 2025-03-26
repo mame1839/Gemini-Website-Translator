@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Traduttore di siti web LLM",
+    "description": "The name of the application"
+  },
+  "appDescription": {
+    "message": "Un'estensione per Chrome che traduce il testo dei siti web sostituendolo, utilizzando le API LLM. Supporta le API Gemini, OpenAI, DeepSeek, Anthropic e xAI.",
+    "description": "The description of the application"
+  }
+}

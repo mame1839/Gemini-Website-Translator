@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Переводчик сайтов LLM",
+    "description": "The name of the application"
+  },
+  "appDescription": {
+    "message": "Расширение Chrome, которое переводит текст веб-сайтов путем его замены, используя API LLM. Поддерживаются API Gemini, OpenAI, DeepSeek, Anthropic и xAI.",
+    "description": "The description of the application"
+  }
+}

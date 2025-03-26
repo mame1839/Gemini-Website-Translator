@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "एलएलएम वेबसाइट अनुवादक",
+    "description": "The name of the application"
+  },
+  "appDescription": {
+    "message": "एक क्रोम एक्सटेंशन जो एलएलएम एपीआई का उपयोग करके वेबसाइट टेक्स्ट को बदलकर अनुवाद करता है। जेमिनी एपीआई, ओपनएआई एपीआई, डीपसीक एपीआई, एंथ्रोपिक एपीआई और एक्सएआई एपीआई का समर्थन करता है।",
+    "description": "The description of the application"
+  }
+}

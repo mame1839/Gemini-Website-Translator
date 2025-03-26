@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "LLM 웹사이트 번역기",
+    "description": "The name of the application"
+  },
+  "appDescription": {
+    "message": "LLM API를 사용하여 웹사이트 텍스트를 대체하여 번역하는 Chrome 확장 프로그램입니다. Gemini API, OpenAI API, DeepSeek API, Anthropic API, xAI API를 지원합니다.",
+    "description": "The description of the application"
+  }
+}

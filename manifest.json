@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Gemini Website Translator",
-  "version": "1.2",
-  "description": "A Chrome extension that uses Gemini's API to translate websites.",
+  "name": "__MSG_appName__",
+  "version": "2.2",
+  "description": "__MSG_appDescription__",
   "permissions": [ "storage", "activeTab", "contextMenus" ],
+  "default_locale": "en",
   "host_permissions": [ "<all_urls>" ],
   "background": {
     "service_worker": "background.js"
