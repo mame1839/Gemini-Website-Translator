@@ -227,6 +227,7 @@ const uiTranslations = {
 };
 
 let currentLangTexts = uiTranslations.en;
+let currentTabId = null; // 現在のタブIDを保持する変数を追加
 
 function initPopupUI() {
   chrome.storage.local.get(['targetLanguage'], function(items) {
@@ -238,25 +239,31 @@ function initPopupUI() {
     document.getElementById('excludeBtn').textContent = currentLangTexts.excludeBtn;
     document.getElementById('optionsBtn').textContent = currentLangTexts.optionsBtn;
   });
+
+  // ポップアップが開かれたときに現在のタブIDを取得
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    if (tabs[0]) {
+      currentTabId = tabs[0].id;
+    }
+  });
 }
 
 function checkTranslationStatus() {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    if (!tabs[0]) return;
-    chrome.tabs.sendMessage(tabs[0].id, {action: "getTranslationStatus"}, function(response) {
-      if (chrome.runtime.lastError) {
-        hideProgress();
-        return;
+  if (!currentTabId) return; // タブIDが未設定の場合は何もしない
+
+  chrome.tabs.sendMessage(currentTabId, {action: "getTranslationStatus"}, function(response) {
+    if (chrome.runtime.lastError) {
+      hideProgress();
+      return;
+    }
+    if (response && response.isTranslating) {
+      showProgress(response.progress);
+      if (response.stats) {
+        updateStats(response.stats);
       }
-      if (response && response.isTranslating) {
-        showProgress(response.progress);
-        if (response.stats) {
-          updateStats(response.stats);
-        }
-      } else {
-        hideProgress();
-      }
-    });
+    } else {
+      hideProgress();
+    }
   });
 }
 
@@ -280,28 +287,32 @@ function updateStats(stats) {
 
 function hideProgress() {
   document.getElementById('progressContainer').style.display = 'none';
+  document.getElementById('progressText').textContent = '';
+  document.getElementById('statsText').textContent = '';
+  document.getElementById('progressFill').style.width = '0%';
   document.getElementById('translateBtn').disabled = false;
 }
 
 function translatePage() {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    if (!tabs[0]) return;
-    chrome.tabs.sendMessage(tabs[0].id, {action: "startTranslation"}, function(response) {
-      if (chrome.runtime.lastError) {
-        document.getElementById('statusText').textContent = currentLangTexts.translationError + ": " + chrome.runtime.lastError.message;
-        return;
-      }
-      if (response && response.status === "started") {
-        showProgress(0);
-        document.getElementById('statusText').textContent = currentLangTexts.startMessage;
-      } else if (response && response.error) {
-        document.getElementById('statusText').textContent = currentLangTexts.translationError + ": " + response.error;
-      }
-    });
+  if (!currentTabId) return;
+
+  chrome.tabs.sendMessage(currentTabId, {action: "startTranslation"}, function(response) {
+    if (chrome.runtime.lastError) {
+      document.getElementById('statusText').textContent = currentLangTexts.translationError + ": " + chrome.runtime.lastError.message;
+      return;
+    }
+    if (response && response.status === "started") {
+      showProgress(0);
+      document.getElementById('statusText').textContent = currentLangTexts.startMessage;
+    } else if (response && response.error) {
+      document.getElementById('statusText').textContent = currentLangTexts.translationError + ": " + response.error;
+    }
   });
 }
 
 function excludeCurrentSite() {
+  if (!currentTabId) return;
+
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
     if (!tabs[0] || !tabs[0].url) return;
     const currentUrl = tabs[0].url;
@@ -332,10 +343,16 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.runtime.openOptionsPage();
   });
 
+  // 1秒ごとに現在のタブの翻訳状態を確認
   setInterval(checkTranslationStatus, 1000);
 });
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  // sender.tab が存在し、現在のタブIDと一致する場合のみ処理
+  if (!sender.tab || sender.tab.id !== currentTabId) {
+    return true; // 他のタブからのメッセージは無視
+  }
+
   if (request.action === "updateProgress") {
     showProgress(request.progress);
     if (request.stats) {

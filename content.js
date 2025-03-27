@@ -151,7 +151,7 @@
       noTextFound: 'অনুবাদ করার জন্য কোনও টেক্সট পাওয়া যায়নি',
       translationCompleted: 'অনুবাদ সম্পন্ন হয়েছে',
       errorOccurred: 'একটি ত্রুটি ঘটেছে',
-      apiLimitError: 'API অনুরোধ সীমায় পৌঁছেছে। সেটিংসে অনুরোধ বিরতি বা ব্যাচের আকার সামঞ্জস্য করুন।',
+      apiLimitError: 'API অনুরোধ সীমায় পৌঁছে গেছে। সেটিংসে অনুরোধ বিরতি বা ব্যাচের আকার সামঞ্জস্য করুন।',
       progressTemplate: 'ব্যাচ: {currentBatch}/{totalBatch}, টেক্সট: {translatedTexts}/{expected}',
       closeButton: 'বন্ধ করুন'
     },
@@ -209,6 +209,7 @@
       const pageLang = getPageLanguage();
       const chosenLang = items.targetLanguage || 'en';
 
+      // 言語コードから主要部分のみを抽出（地域コードを無視）
       const pageLangPrimary = pageLang ? pageLang.split('-')[0].toLowerCase() : null;
       const chosenLangPrimary = chosenLang.split('-')[0].toLowerCase();
 
@@ -226,11 +227,13 @@
   function getPageLanguage() {
     const langAttr = document.documentElement.lang;
     if (langAttr) {
+      // lang 属性が存在する場合、小文字に変換して返す（地域コードを含む可能性あり）
       return langAttr.toLowerCase();
     }
     const url = window.location.href;
     const urlLang = extractLanguageFromUrl(url);
     if (urlLang) {
+      // URL から抽出した言語コードを小文字で返す
       return urlLang.toLowerCase();
     }
     return null;
